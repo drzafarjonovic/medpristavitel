@@ -1,0 +1,75 @@
+name: Auto Unzip & Deploy MedPred CRM
+
+on:
+  push:
+    paths:
+      - '*.zip'
+      - 'index.html'
+      - 'login.html'
+      - 'dashboard.html'
+      - 'pages/**'
+      - 'assets/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  unzip-and-prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip uploaded archive to repo root
+        run: |
+          shopt -s nullglob
+          ZIPS=(*.zip)
+          if [ ${#ZIPS[@]} -gt 0 ]; then
+            ZIPFILE="${ZIPS[0]}"
+            echo "Arxiv topildi: $ZIPFILE"
+            mkdir -p _tmp_unzip
+            unzip -oq "$ZIPFILE" -d _tmp_unzip
+
+            SRC="_tmp_unzip"
+            if [ -d "_tmp_unzip/clinic-referral-crm" ]; then
+              SRC="_tmp_unzip/clinic-referral-crm"
+            fi
+
+            cp -rf "$SRC"/. .
+            rm -rf _tmp_unzip "$ZIPFILE"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Unzip MedPred CRM archive to root [skip ci]"
+              git push
+            fi
+          else
+            echo "Yangi ZIP fayl yo'q, mavjud fayllar deploy qilinadi."
+          fi
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    needs: unzip-and-prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
