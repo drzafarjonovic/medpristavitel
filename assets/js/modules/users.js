@@ -1,5 +1,6 @@
 /**
  * MedPred CRM — Foydalanuvchilar, rollar va ruxsatlar moduli
+ * Yangi foydalanuvchini Supabase Dashboardga kirmasdan, to'g'ridan-to'g'ri ilovadan yaratadi.
  */
 (async function () {
   const currentUser = await window.Auth.initPage("users", "Foydalanuvchilar");
@@ -24,7 +25,6 @@
     btnAdd: document.getElementById("btn-add-user")
   };
 
-  // Tab almashtirish
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
@@ -56,7 +56,6 @@
     state.branches = bRes.data || [];
     state.rolePerms = rpRes.data || [];
 
-    // Rol filtrini to'ldirish
     const curRoleVal = els.role.value;
     els.role.innerHTML = `<option value="">Barcha rollar</option>` +
       state.roles.map((r) => `<option value="${r.id}">${window.CRM.esc(r.name_uz)}</option>`).join("");
@@ -209,37 +208,42 @@
     });
   }
 
-  function openNewUserGuideModal() {
+  function generatePassword() {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "";
+    for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+
+  function openCreateUserModal() {
     const assignableRoles = state.roles.filter((r) =>
       currentUser.role === "SUPERADMIN" || r.code !== "SUPERADMIN"
     );
+
     window.CRM.openModal(
-      "Yangi foydalanuvchi profilini biriktirish",
-      `<div class="alert alert-info">
-        <i data-lucide="shield-alert"></i>
-        <div>
-          Xavfsizlik sababli frontendda <code>service_role</code> kaliti ishlatilmaydi. Avval <strong>Supabase Dashboard → Authentication → Users → Add User</strong> orqali yangi xodim yarating va uning <code>User UID</code> qiymatini quyida kiriting (yoki kelgusida Supabase Edge Function orqali avtomatlashtiriladi).
-        </div>
-      </div>
-      <form id="new-profile-form" class="form-grid">
+      "Yangi xodim qo'shish",
+      `<form id="create-user-form" class="form-grid">
         <div class="form-group full">
-          <label>Supabase Auth User UID</label>
-          <input class="input mono" name="id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          <label>F.I.Sh. *</label>
+          <input class="input" name="full_name" required placeholder="Karimov Azizbek">
         </div>
         <div class="form-group">
-          <label>F.I.Sh.</label>
-          <input class="input" name="full_name" required placeholder="Karimov Aziz">
-        </div>
-        <div class="form-group">
-          <label>Email</label>
+          <label>Email (kirish logini) *</label>
           <input class="input" name="email" type="email" required placeholder="aziz@klinika.uz">
         </div>
         <div class="form-group">
-          <label>Telefon</label>
+          <label style="display:flex;justify-content:space-between;">
+            <span>Parol (kamida 6 belgi) *</span>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-gen-pass" style="height:20px;padding:0 6px;">Avto parol</button>
+          </label>
+          <input class="input mono" name="password" id="new-user-pass" type="text" minlength="6" required placeholder="Kamida 6 ta belgi">
+        </div>
+        <div class="form-group">
+          <label>Telefon raqami</label>
           <input class="input" name="phone" placeholder="+998 90 123 45 67">
         </div>
         <div class="form-group">
-          <label>Rol</label>
+          <label>Rol *</label>
           <select class="select" name="role_id" required>
             ${assignableRoles.map((r) => `<option value="${r.id}">${window.CRM.esc(r.name_uz)}</option>`).join("")}
           </select>
@@ -247,42 +251,78 @@
         <div class="form-group full">
           <label>Filial</label>
           <select class="select" name="branch_id">
-            <option value="">Tanlanmagan</option>
+            <option value="">Asosiy / Tanlanmagan</option>
             ${state.branches.map((b) => `<option value="${b.id}">${window.CRM.esc(b.name)}</option>`).join("")}
           </select>
+          <span class="form-hint">Agar rol <strong>Medpredstavitel</strong> bo'lsa, u avtomatik Medpredlar ro'yxatiga ham ulanadi.</span>
         </div>
       </form>`,
       `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor qilish</button>
-       <button type="submit" form="new-profile-form" class="btn btn-primary">Profil yaratish</button>`
+       <button type="submit" form="create-user-form" class="btn btn-primary" id="btn-create-submit">Xodimni yaratish</button>`
     );
 
-    document.getElementById("new-profile-form")?.addEventListener("submit", async (e) => {
+    document.getElementById("btn-gen-pass")?.addEventListener("click", () => {
+      document.getElementById("new-user-pass").value = generatePassword();
+    });
+
+    document.getElementById("create-user-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target);
-      const payload = {
-        id: String(fd.get("id") || "").trim(),
-        full_name: String(fd.get("full_name") || "").trim(),
-        email: String(fd.get("email") || "").trim(),
-        phone: String(fd.get("phone") || "").trim(),
-        role_id: fd.get("role_id"),
-        branch_id: fd.get("branch_id") || null,
-        is_active: true
-      };
-      const { error } = await window.sb.from("profiles").insert(payload);
-      if (error) {
-        window.CRM.toast("Xato: " + error.message, "error");
-        return;
+      const btn = document.getElementById("btn-create-submit");
+      btn.disabled = true;
+
+      try {
+        const fd = new FormData(e.target);
+        const fullName = String(fd.get("full_name") || "").trim();
+        const email = String(fd.get("email") || "").trim().toLowerCase();
+        const password = String(fd.get("password") || "");
+        const phone = String(fd.get("phone") || "").trim();
+        const roleId = fd.get("role_id");
+        const branchId = fd.get("branch_id") || null;
+
+        // Joriy Superadmin sessiyasini buzmaslik uchun vaqtinchalik (persistSession: false) client
+        const cfg = window.APP_CONFIG;
+        const tempSb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        });
+
+        const { data: signData, error: signErr } = await tempSb.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } }
+        });
+
+        if (signErr) {
+          throw new Error(signErr.message || "Hisob yaratib bo'lmadi");
+        }
+        const newUser = signData?.user;
+        if (!newUser?.id || (Array.isArray(newUser.identities) && newUser.identities.length === 0)) {
+          throw new Error("Bu email allaqachon ro'yxatdan o'tgan");
+        }
+
+        // Server RPC orqali emailni tasdiqlash, profil yaratish va MEDPRED bo'lsa avtomatik ulash
+        await window.CRM.rpc("rpc_admin_finalize_user", {
+          p_user_id: newUser.id,
+          p_full_name: fullName,
+          p_email: email,
+          p_phone: phone,
+          p_role_id: roleId,
+          p_branch_id: branchId
+        });
+
+        window.CRM.closeModal();
+        window.CRM.toast(`Xodim yaratildi! Login: ${email}`, "success");
+        await loadData();
+      } catch (err) {
+        window.CRM.toast("Xato: " + (err.message || "Yaratib bo'lmadi"), "error");
+        btn.disabled = false;
       }
-      window.CRM.closeModal();
-      window.CRM.toast("Yangi foydalanuvchi profili yaratildi", "success");
-      await loadData();
     });
   }
 
   els.q.addEventListener("input", () => { state.page = 1; renderUsers(); });
   els.role.addEventListener("change", () => { state.page = 1; renderUsers(); });
   els.status.addEventListener("change", () => { state.page = 1; renderUsers(); });
-  els.btnAdd.addEventListener("click", openNewUserGuideModal);
+  els.btnAdd.addEventListener("click", openCreateUserModal);
 
   await loadData();
 })();
