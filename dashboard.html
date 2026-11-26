@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dashboard — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+  <style>
+    .charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+    .chart-box { position: relative; height: 270px; width: 100%; }
+    @media (max-width: 960px) { .charts-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Umumiy tahlil va statistika</h2>
+            <p class="page-subtitle" id="dash-period-lbl">Joriy oy bo'yicha ko'rsatkichlar</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select class="select" id="dash-period" style="width:175px;">
+              <option value="today">Bugun</option>
+              <option value="yesterday">Kecha</option>
+              <option value="7d">Oxirgi 7 kun</option>
+              <option value="month" selected>Joriy oy</option>
+              <option value="prev_month">O'tgan oy</option>
+              <option value="year">Joriy yil</option>
+              <option value="custom">Maxsus oralig'...</option>
+            </select>
+            <input class="input hidden" id="dash-from" type="date" style="width:148px;">
+            <input class="input hidden" id="dash-to" type="date" style="width:148px;">
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="dash-kpis"></div>
+
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header"><h3>Tushum dinamikasi</h3></div>
+            <div class="card-body"><div class="chart-box"><canvas id="ch-revenue"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Bemorlar va tashriflar dinamikasi</h3></div>
+            <div class="card-body"><div class="chart-box"><canvas id="ch-patients"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Eng faol medpredlar reytingi</h3></div>
+            <div class="card-body"><div class="chart-box"><canvas id="ch-medpreds"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Xizmatlar bo'yicha tushum (Top 8)</h3></div>
+            <div class="card-body"><div class="chart-box"><canvas id="ch-services"></canvas></div></div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header"><h3>Eng ko'p bemor yuborgan shifokorlar</h3></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Shifokor</th><th>Kod</th><th class="text-right">Tashrif</th><th class="text-right">Tushum</th></tr></thead>
+                <tbody id="top-docs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>Eng ko'p tanlangan xizmatlar</h3></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Xizmat nomi</th><th class="text-right">Soni</th><th class="text-right">Tushum</th></tr></thead>
+                <tbody id="top-srvs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/permissions.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/pwa.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

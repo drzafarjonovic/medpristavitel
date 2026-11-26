@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Excel Import / Export — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Excel Import va Export markazi</h2>
+            <p class="page-subtitle">XLSX/CSV yuklash, ustunlarni moslashtirish, preview, xatoli qatorlarni chiqarish va hisobotlar eksporti.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn btn-sm" href="../templates/services_template.xlsx" download>Shablon: Xizmatlar</a>
+            <a class="btn btn-sm" href="../templates/doctors_template.xlsx" download>Shablon: Shifokorlar</a>
+            <a class="btn btn-sm" href="../templates/medpreds_template.xlsx" download>Shablon: Medpredlar</a>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="tab-import">Excel Import</button>
+          <button type="button" class="tab-btn" data-tab="tab-export">Maxsus Export</button>
+          <button type="button" class="tab-btn" data-tab="tab-logs">Import tarixi</button>
+        </div>
+
+        <!-- TAB 1: IMPORT -->
+        <section id="tab-import">
+          <div class="card card-body" style="margin-bottom:16px;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>1. Qaysi ma'lumotni import qilasiz? *</label>
+                <select class="select" id="imp-entity">
+                  <option value="services">Xizmatlar va narxlar</option>
+                  <option value="doctors">Shifokorlar</option>
+                  <option value="medpreds">Medpredlar</option>
+                  <option value="organizations">Muassasalar</option>
+                  <option value="patients">Bemorlar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>2. Import rejimi *</label>
+                <select class="select" id="imp-mode">
+                  <option value="SKIP_DUPLICATES">SKIP DUPLICATES (takroriylarni o'tkazish)</option>
+                  <option value="UPDATE">UPDATE (mavjudni yangilash + yangisini qo'shish)</option>
+                  <option value="INSERT">INSERT (faqat yangi qatorlar)</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label>3. XLSX yoki CSV faylni tanlang *</label>
+                <input class="input" id="imp-file" type="file" accept=".xlsx,.xls,.csv">
+              </div>
+            </div>
+          </div>
+
+          <div id="imp-mapping-box" class="card card-body hidden" style="margin-bottom:16px;">
+            <h3 style="margin:0 0 12px;">Ustunlarni moslashtirish (avtomatik aniqlandi, qo'lda o'zgartirish mumkin)</h3>
+            <div id="imp-mapping-grid" class="form-grid"></div>
+            <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+              <button type="button" class="btn btn-primary" id="btn-run-preview">Preview va tekshirish</button>
+            </div>
+          </div>
+
+          <div id="imp-preview-box" class="card hidden">
+            <div class="card-header">
+              <h3 id="imp-preview-title">Preview</h3>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm hidden" id="btn-dl-errors">Xatoli qatorlarni yuklash (.xlsx)</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-commit-import">Yaroqli qatorlarni import qilish</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead id="imp-prev-thead"></thead>
+                <tbody id="imp-prev-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: CUSTOM EXPORT -->
+        <section id="tab-export" class="hidden">
+          <div class="card card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Eksport turi</label>
+                <select class="select" id="exp-entity">
+                  <option value="visits">Tashriflar</option>
+                  <option value="doctors">Shifokorlar ro'yxati</option>
+                  <option value="medpreds">Medpredlar ro'yxati</option>
+                  <option value="patients">Bemorlar ro'yxati</option>
+                  <option value="services">Xizmatlar va narxlar</option>
+                  <option value="payments">To'lovlar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Fayl formati</label>
+                <select class="select" id="exp-format">
+                  <option value="xlsx">Excel (.xlsx)</option>
+                  <option value="csv">CSV (.csv)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Sana (dan)</label>
+                <input class="input" id="exp-from" type="date">
+              </div>
+              <div class="form-group">
+                <label>Sana (gacha)</label>
+                <input class="input" id="exp-to" type="date">
+              </div>
+              <div class="form-group full">
+                <label>Eksport qilinadigan ustunlar</label>
+                <div id="exp-cols" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px;border:1px solid var(--border);border-radius:9px;"></div>
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+              <button type="button" class="btn btn-primary" id="btn-run-export">
+                <i data-lucide="download"></i>
+                <span>Faylni yuklab olish</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: LOGS -->
+        <section id="tab-logs" class="hidden">
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Bo'lim</th>
+                    <th>Fayl nomi</th>
+                    <th>Rejim</th>
+                    <th class="text-right">Jami</th>
+                    <th class="text-right">Qo'shildi</th>
+                    <th class="text-right">Yangilandi</th>
+                    <th class="text-right">O'tkazildi</th>
+                    <th class="text-right">Xato</th>
+                  </tr>
+                </thead>
+                <tbody id="logs-tbody">
+                  <tr><td colspan="9" class="empty-state">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/excel.js"></script>
+  <script src="../assets/js/modules/imports.js"></script>
+</body>
+</html>

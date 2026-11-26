@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Foydalanuvchilar va rollar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Foydalanuvchilar va rollar</h2>
+            <p class="page-subtitle">Tizim xodimlarining hisoblarini, rollarini va ruxsatlar matritsasini boshqarish.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-add-user">
+            <i data-lucide="user-plus"></i>
+            <span>Yangi foydalanuvchi</span>
+          </button>
+        </div>
+
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="users-tab">Xodimlar ro'yxati</button>
+          <button type="button" class="tab-btn" data-tab="roles-tab">Rollar va ruxsatlar</button>
+        </div>
+
+        <section id="users-tab">
+          <div class="toolbar">
+            <input class="input grow" id="filter-q" type="search" placeholder="F.I.Sh., email yoki telefon bo'yicha qidirish...">
+            <select class="select" id="filter-role" style="width:200px;">
+              <option value="">Barcha rollar</option>
+            </select>
+            <select class="select" id="filter-status" style="width:160px;">
+              <option value="">Barcha holatlar</option>
+              <option value="active">Faol</option>
+              <option value="inactive">Nofaol</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>F.I.Sh.</th>
+                    <th>Email / Telefon</th>
+                    <th>Rol</th>
+                    <th>Filial</th>
+                    <th>Holat</th>
+                    <th>Yaratilgan</th>
+                    <th class="text-right">Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody">
+                  <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-footer" id="users-footer"></div>
+          </div>
+        </section>
+
+        <section id="roles-tab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3>Rollar bo'yicha ruxsatlar matritsasi</h3>
+              <span class="badge badge-info">Supabase RLS + RBAC</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rol</th>
+                    <th>Tavsif</th>
+                    <th>Ruxsatlar soni</th>
+                    <th>Asosiy ruxsat kodlari</th>
+                  </tr>
+                </thead>
+                <tbody id="roles-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/users.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Medpredlar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Medpredstavitellar</h2>
+            <p class="page-subtitle">Tibbiy vakillar ro'yxati, hududlar, biriktirilgan shifokorlar va vaqtinchalik hisob-kitoblar.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn hidden" id="btn-territories">
+              <i data-lucide="map-pin"></i>
+              <span>Hududlar</span>
+            </button>
+            <button type="button" class="btn btn-primary hidden" id="btn-add-medpred">
+              <i data-lucide="plus"></i>
+              <span>Yangi medpred</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="mp-kpis"></div>
+
+        <div class="toolbar">
+          <input class="input grow" id="filter-q" type="search" placeholder="Kod, F.I.Sh., telefon yoki manzil bo'yicha qidirish...">
+          <select class="select" id="filter-territory" style="width:190px;">
+            <option value="">Barcha hududlar</option>
+          </select>
+          <select class="select" id="filter-status" style="width:150px;">
+            <option value="">Barcha holatlar</option>
+            <option value="active">Faol</option>
+            <option value="inactive">Nofaol</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID kod</th>
+                  <th>F.I.Sh. / Telefon</th>
+                  <th>Hudud</th>
+                  <th>Ish boshlagan</th>
+                  <th class="text-right">Shifokorlar</th>
+                  <th class="text-right">Tashriflar</th>
+                  <th class="text-right">Tushum</th>
+                  <th class="text-right">Ulush % (prot.)</th>
+                  <th>Holat</th>
+                  <th class="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="mp-tbody">
+                <tr><td colspan="10" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="mp-footer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/medpreds.js"></script>
+</body>
+</html>

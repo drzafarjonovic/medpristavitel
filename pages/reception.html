@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Qabulxona (Tezkor tashrif) — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+  <style>
+    .rec-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+    .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+    .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .step-num { width: 26px; height: 26px; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; flex-shrink: 0; }
+    .step-head h3 { margin: 0; font-size: 15.5px; }
+    .pick-list { margin-top: 8px; border: 1px solid var(--border); border-radius: 9px; max-height: 190px; overflow-y: auto; }
+    .pick-item { padding: 9px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; }
+    .pick-item:last-child { border-bottom: 0; }
+    .pick-item:hover { background: var(--primary-soft); }
+    .selected-box { padding: 11px 14px; border-radius: 10px; background: var(--primary-soft); border: 1px solid #b6dde0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .cart-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+    .cart-row:last-child { border-bottom: 0; }
+    .qty-ctrl { display: inline-flex; align-items: center; gap: 6px; }
+    .qty-ctrl button { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 700; }
+    .summary-sticky { position: sticky; top: 84px; }
+    .sum-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+    .sum-line.total { border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 10px; font-size: 17px; font-weight: 700; }
+    @media (max-width: 980px) { .rec-grid { grid-template-columns: 1fr; } .summary-sticky { position: static; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Qabulxona — Yangi tashrif qo'shish</h2>
+            <p class="page-subtitle">Bemorni toping, shifokor va xizmatlarni tanlang — medpred va yakuniy hisob-kitob avtomatik bajariladi.</p>
+          </div>
+          <button type="button" class="btn" id="btn-reset-form">
+            <i data-lucide="rotate-ccw"></i>
+            <span>Tozalash</span>
+          </button>
+        </div>
+
+        <div class="rec-grid">
+          <!-- CHAP USTUN: 1, 2, 3-qadamlar -->
+          <div>
+            <!-- 1-QADAM: BEMOR -->
+            <div class="step-card">
+              <div class="step-head">
+                <span class="step-num">1</span>
+                <h3>Bemorni tanlash yoki tez yaratish</h3>
+              </div>
+              <div id="patient-selected" class="hidden"></div>
+              <div id="patient-picker">
+                <div class="toolbar" style="margin-bottom:8px;">
+                  <input class="input grow" id="rec-pat-q" type="search" placeholder="Telefon, F.I.Sh. yoki PT-00001 kiriting...">
+                  <button type="button" class="btn btn-primary" id="btn-quick-new-pat">+ Yangi bemor</button>
+                </div>
+                <div id="rec-pat-list" class="pick-list hidden"></div>
+              </div>
+            </div>
+
+            <!-- 2-QADAM: SHIFOKOR -->
+            <div class="step-card">
+              <div class="step-head">
+                <span class="step-num">2</span>
+                <h3>Yo'llanma bergan shifokorni tanlash</h3>
+              </div>
+              <div id="doctor-selected" class="hidden"></div>
+              <div id="doctor-picker">
+                <input class="input" id="rec-doc-q" type="search" placeholder="Shifokor ID kodi (DR-0001 yoki 1) yoxud F.I.Sh. kiriting...">
+                <div id="rec-doc-list" class="pick-list hidden"></div>
+              </div>
+            </div>
+
+            <!-- 3-QADAM: XIZMATLAR -->
+            <div class="step-card">
+              <div class="step-head">
+                <span class="step-num">3</span>
+                <h3>Xizmatlarni tanlash (bir nechta qo'shish mumkin)</h3>
+              </div>
+              <div class="toolbar" style="margin-bottom:8px;">
+                <input class="input grow" id="rec-srv-q" type="search" placeholder="Xizmat nomini qidiring (UZI, tahlil, ko'rik...)">
+                <select class="select" id="rec-srv-cat" style="width:190px;">
+                  <option value="">Barcha kategoriyalar</option>
+                </select>
+              </div>
+              <div id="rec-srv-list" class="pick-list"></div>
+            </div>
+          </div>
+
+          <!-- O'NG USTUN: 4, 5, 6-qadamlar (Savat, to'lov, tasdiqlash) -->
+          <div class="summary-sticky">
+            <div class="step-card">
+              <div class="step-head">
+                <span class="step-num">4</span>
+                <h3>Tanlangan xizmatlar va to'lov</h3>
+              </div>
+
+              <div id="cart-items" style="margin-bottom:14px;">
+                <div class="text-muted" style="font-size:13.5px;padding:10px 0;">Hali xizmat tanlanmagan.</div>
+              </div>
+
+              <div class="form-grid" style="margin-bottom:12px;">
+                <div class="form-group" id="discount-group">
+                  <label>Chegirma (so'm)</label>
+                  <input class="input mono" id="rec-discount" type="number" min="0" step="1000" value="0">
+                </div>
+                <div class="form-group">
+                  <label>To'lov usuli</label>
+                  <select class="select" id="rec-pay-method">
+                    <option value="cash">Naqd</option>
+                    <option value="card">Plastik karta</option>
+                    <option value="transfer">O'tkazma</option>
+                    <option value="other">Boshqa</option>
+                  </select>
+                </div>
+                <div class="form-group full">
+                  <label style="display:flex;justify-content:space-between;">
+                    <span>To'langan summa (so'm)</span>
+                    <span>
+                      <button type="button" class="btn btn-ghost btn-sm" id="btn-pay-full" style="height:22px;padding:0 6px;">To'liq</button>
+                      <button type="button" class="btn btn-ghost btn-sm" id="btn-pay-zero" style="height:22px;padding:0 6px;">0</button>
+                    </span>
+                  </label>
+                  <input class="input mono" id="rec-paid" type="number" min="0" step="1000" value="0">
+                </div>
+                <div class="form-group full">
+                  <label>Izoh (ixtiyoriy)</label>
+                  <input class="input" id="rec-notes" placeholder="Qo'shimcha eslatma...">
+                </div>
+              </div>
+
+              <div style="border-top:1px solid var(--border);padding-top:10px;">
+                <div class="sum-line"><span>Xizmatlar jami:</span><span class="mono" id="sum-subtotal">0 so'm</span></div>
+                <div class="sum-line"><span>Chegirma:</span><span class="mono" id="sum-discount">0 so'm</span></div>
+                <div class="sum-line total"><span>Yakuniy summa:</span><span class="mono" id="sum-total">0 so'm</span></div>
+                <div class="sum-line"><span>To'lov holati:</span><span id="sum-pay-badge"><span class="badge badge-neutral">To'lanmagan</span></span></div>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-lg" id="btn-review-visit" style="width:100%;margin-top:14px;">
+                <i data-lucide="check-circle-2"></i>
+                <span>Tekshirish va saqlash</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUGUNGI TASHRIFLAR -->
+        <div class="card" style="margin-top:8px;">
+          <div class="card-header">
+            <h3>Bugungi tashriflar</h3>
+            <span class="badge badge-primary" id="today-summary">0 ta · 0 so'm</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Vaqt / Kod</th>
+                  <th>Bemor</th>
+                  <th>Shifokor / Medpred</th>
+                  <th class="text-right">Summa</th>
+                  <th class="text-right">To'langan</th>
+                  <th>Holat</th>
+                  <th class="text-right">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="today-tbody">
+                <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/reception.js"></script>
+</body>
+</html>

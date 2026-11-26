@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bemorlar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Bemorlar bazasi</h2>
+            <p class="page-subtitle">Telefon yoki PT-ID orqali tezkor qidiruv, takroriy kelishlarda mavjud bemorga tashrif bog'lash.</p>
+          </div>
+          <button type="button" class="btn btn-primary hidden" id="btn-add-patient">
+            <i data-lucide="user-plus"></i>
+            <span>Yangi bemor</span>
+          </button>
+        </div>
+
+        <div class="toolbar">
+          <input class="input grow" id="filter-q" type="search" placeholder="PT-ID, F.I.Sh. yoki telefon raqami bo'yicha qidirish...">
+          <select class="select" id="filter-gender" style="width:160px;">
+            <option value="">Barcha jinslar</option>
+            <option value="male">Erkak</option>
+            <option value="female">Ayol</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Bemor ID</th>
+                  <th>F.I.Sh.</th>
+                  <th>Telefon</th>
+                  <th>Tug'ilgan sana</th>
+                  <th>Jinsi</th>
+                  <th>Yaratilgan</th>
+                  <th class="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="pat-tbody">
+                <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="pat-footer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/patients.js"></script>
+</body>
+</html>

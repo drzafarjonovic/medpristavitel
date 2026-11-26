@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>To'lovlar va hisob-kitob — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">To'lovlar va vaqtinchalik hisob-kitoblar</h2>
+            <p class="page-subtitle">Tashrif to'lovlari, refundlar hamda shifokor va medpredlar bo'yicha vaqtinchalik balanslar.</p>
+          </div>
+          <button type="button" class="btn" id="btn-export-pay">
+            <i data-lucide="download"></i>
+            <span>Excel export</span>
+          </button>
+        </div>
+
+        <div class="alert alert-warning">
+          <i data-lucide="alert-triangle"></i>
+          <div>
+            <strong>Prototip hisob-kitobi:</strong> Ushbu bo'limdagi referal foizlar va qoldiqlar vaqtinchalik prototip hisobi bo'lib, rasmiy shartnomalar tasdiqlanmaguncha qonuniy komissiya yoki majburiy to'lov sifatida qo'llanilmaydi.
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="pay-kpis"></div>
+
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tab="tab-docs">Shifokorlar balansi (prototip)</button>
+          <button type="button" class="tab-btn" data-tab="tab-reps">Medpredlar balansi (prototip)</button>
+          <button type="button" class="tab-btn" data-tab="tab-all">Barcha to'lovlar</button>
+          <button type="button" class="tab-btn" data-tab="tab-refunds">Qaytarilgan (Refund)</button>
+        </div>
+
+        <!-- TAB 1: DOCTORS -->
+        <section id="tab-docs">
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Shifokor</th>
+                    <th>ID kod</th>
+                    <th class="text-right">Hisoblangan</th>
+                    <th class="text-right">Bekor/Qaytarish</th>
+                    <th class="text-right">To'langan</th>
+                    <th class="text-right">Vaqtinchalik qoldiq</th>
+                    <th class="text-right">Amal</th>
+                  </tr>
+                </thead>
+                <tbody id="bal-docs-tbody">
+                  <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: MEDPREDS -->
+        <section id="tab-reps" class="hidden">
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Medpredstavitel</th>
+                    <th>ID kod</th>
+                    <th class="text-right">Hisoblangan</th>
+                    <th class="text-right">Bekor/Qaytarish</th>
+                    <th class="text-right">To'langan</th>
+                    <th class="text-right">Vaqtinchalik qoldiq</th>
+                    <th class="text-right">Amal</th>
+                  </tr>
+                </thead>
+                <tbody id="bal-reps-tbody">
+                  <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: ALL PAYMENTS -->
+        <section id="tab-all" class="hidden">
+          <div class="toolbar">
+            <select class="select" id="filter-kind" style="width:200px;">
+              <option value="">Barcha turlar</option>
+              <option value="visit_payment">Bemor tashrif to'lovi</option>
+              <option value="doctor_payout">Shifokorga to'lov</option>
+              <option value="medpred_payout">Medpredga to'lov</option>
+            </select>
+            <select class="select" id="filter-method" style="width:170px;">
+              <option value="">Barcha usullar</option>
+              <option value="cash">Naqd</option>
+              <option value="card">Plastik karta</option>
+              <option value="transfer">O'tkazma</option>
+              <option value="other">Boshqa</option>
+            </select>
+            <input class="input" id="filter-from" type="date" style="width:155px;">
+            <input class="input" id="filter-to" type="date" style="width:155px;">
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Turi</th>
+                    <th>Obyekt / Kimga</th>
+                    <th>Usul</th>
+                    <th class="text-right">Summa</th>
+                    <th>Izoh</th>
+                  </tr>
+                </thead>
+                <tbody id="all-pay-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: REFUNDS -->
+        <section id="tab-refunds" class="hidden">
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Tashrif kodi</th>
+                    <th>Usul</th>
+                    <th class="text-right">Qaytarilgan summa</th>
+                    <th>Sabab</th>
+                  </tr>
+                </thead>
+                <tbody id="refunds-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/excel.js"></script>
+  <script src="../assets/js/modules/payments.js"></script>
+</body>
+</html>

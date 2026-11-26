@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kirish — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+  <main class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="brand-mark">M</div>
+        <div>
+          <strong style="display:block;font-size:17px;">MedPred CRM</strong>
+          <span class="text-muted" style="font-size:12.5px;">Klinika yo'llanma boshqaruv tizimi</span>
+        </div>
+      </div>
+
+      <h1>Tizimga kirish</h1>
+      <p class="sub">Xodim hisobingizning email va parolini kiriting.</p>
+
+      <div id="config-warning" class="alert alert-warning hidden">
+        <i data-lucide="alert-triangle"></i>
+        <div>
+          <strong>Supabase ulanmagan.</strong> Pastdagi «Ulanish sozlamalari» tugmasi orqali loyiha URL va ommaviy <code>anon</code> kalitini kiriting.
+        </div>
+      </div>
+
+      <div id="login-error" class="alert alert-danger hidden">
+        <i data-lucide="alert-circle"></i>
+        <span id="login-error-text"></span>
+      </div>
+
+      <form id="login-form" style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label for="email">Email manzil</label>
+          <input class="input" id="email" name="email" type="email" placeholder="xodim@klinika.uz" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Parol</label>
+          <input class="input" id="password" name="password" type="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-submit" style="width:100%;margin-top:4px;">
+          <i data-lucide="log-in"></i>
+          <span>Kirish</span>
+        </button>
+      </form>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
+        <span class="text-muted">Faqat ruxsatli xodimlar uchun</span>
+        <button type="button" class="btn btn-ghost btn-sm hidden" data-pwa-install><i data-lucide="download"></i><span>Ilovani o'rnatish</span></button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-conn-settings">
+          <i data-lucide="sliders-horizontal"></i>
+          <span>Ulanish sozlamalari</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/permissions.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/pwa.js"></script>
+  <script>
+    (async function () {
+      if (window.lucide) window.lucide.createIcons();
+      if (window.PWA) window.PWA.updateInstallButtons();
+
+      const warnEl = document.getElementById("config-warning");
+      const errBox = document.getElementById("login-error");
+      const errText = document.getElementById("login-error-text");
+
+      if (!window.CRM.isConfigured()) {
+        warnEl.classList.remove("hidden");
+      } else {
+        const user = await window.Auth.loadCurrentUser();
+        if (user) {
+          window.location.replace(window.RBAC.getDefaultHome(user.role, false));
+          return;
+        }
+      }
+
+      function showErr(msg) {
+        errText.textContent = msg;
+        errBox.classList.remove("hidden");
+      }
+
+      document.getElementById("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errBox.classList.add("hidden");
+
+        if (!window.CRM.isConfigured()) {
+          showErr("Avval Supabase URL va ommaviy anon kalitini sozlang.");
+          return;
+        }
+
+        const btn = document.getElementById("btn-submit");
+        btn.disabled = true;
+
+        try {
+          const email = document.getElementById("email").value.trim();
+          const password = document.getElementById("password").value;
+          const { error } = await window.sb.auth.signInWithPassword({ email, password });
+          if (error) {
+            showErr("Email yoki parol noto'g'ri, yoxud hisob tasdiqlanmagan.");
+            return;
+          }
+
+          const user = await window.Auth.loadCurrentUser();
+          if (!user) {
+            await window.sb.auth.signOut();
+            showErr("Sizning hisobingizga profil yoki faol rol biriktirilmagan. Administratorga murojaat qiling.");
+            return;
+          }
+
+          window.location.replace(window.RBAC.getDefaultHome(user.role, false));
+        } catch (err) {
+          showErr(err.message || "Tizimga kirishda xatolik yuz berdi.");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById("btn-conn-settings").addEventListener("click", () => {
+        const curUrl = window.APP_CONFIG.SUPABASE_URL || "";
+        const curKey = window.APP_CONFIG.SUPABASE_ANON_KEY || "";
+        window.CRM.openModal(
+          "Supabase ulanish sozlamalari",
+          `<form id="conn-form" class="form-grid">
+            <div class="form-group full">
+              <label>Supabase Project URL</label>
+              <input class="input" name="url" type="url" required placeholder="https://xxxx.supabase.co" value="${window.CRM.esc(curUrl)}">
+            </div>
+            <div class="form-group full">
+              <label>Supabase Publishable / Anon Key (faqat ommaviy kalit)</label>
+              <textarea class="textarea mono" name="key" required placeholder="eyJhbGciOi...">${window.CRM.esc(curKey)}</textarea>
+              <span class="form-hint">Diqqat: hech qachon service_role maxfiy kalitini kiritmang!</span>
+            </div>
+          </form>`,
+          `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor qilish</button>
+           <button type="submit" form="conn-form" class="btn btn-primary">Saqlash</button>`
+        );
+
+        document.getElementById("conn-form")?.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          const fd = new FormData(ev.target);
+          window.CRM.saveConnection(fd.get("url"), fd.get("key"));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

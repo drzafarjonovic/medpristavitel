@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Muassasalar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Tibbiyot muassasalari</h2>
+            <p class="page-subtitle">Poliklinikalar, xususiy klinikalar, diagnostika markazlari va mustaqil shifokorlar katalogi.</p>
+          </div>
+          <button type="button" class="btn btn-primary hidden" id="btn-add-org">
+            <i data-lucide="plus"></i>
+            <span>Yangi muassasa</span>
+          </button>
+        </div>
+
+        <div class="toolbar">
+          <input class="input grow" id="filter-q" type="search" placeholder="Muassasa nomi, manzil, telefon yoki mas'ul shaxs...">
+          <select class="select" id="filter-type" style="width:200px;">
+            <option value="">Barcha turlar</option>
+            <option value="state_polyclinic">Davlat poliklinikasi</option>
+            <option value="private_clinic">Xususiy klinika</option>
+            <option value="diagnostic_center">Diagnostika markazi</option>
+            <option value="independent_doctor">Mustaqil shifokor</option>
+            <option value="other">Boshqa</option>
+          </select>
+          <select class="select" id="filter-territory" style="width:170px;">
+            <option value="">Barcha hududlar</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Muassasa nomi</th>
+                  <th>Turi</th>
+                  <th>Hudud / Manzil</th>
+                  <th>Telefon / Mas'ul</th>
+                  <th class="text-right">Shifokorlar</th>
+                  <th>Holat</th>
+                  <th class="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="org-tbody">
+                <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="org-footer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/organizations.js"></script>
+</body>
+</html>

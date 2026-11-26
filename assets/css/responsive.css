@@ -1,0 +1,305 @@
+/* ==========================================================================
+   MEDPRED CRM — PWA & PRECISION RESPONSIVE DESIGN (DESKTOP + ALL PHONES)
+   Barcha telefonlar (360px–430px), planshetlar va Desktop PWA uchun aniq o'lchamlar
+   ========================================================================== */
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --bottom-nav-h: 60px;
+}
+
+html, body {
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Ikonkalar hech qachon siqilmasligi va buzilmasligi uchun */
+svg.lucide,
+.btn svg,
+.icon-btn svg,
+.nav-link svg,
+.menu-toggle svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Offline holat indikatori */
+.pwa-offline-bar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  background: #991b1b;
+  color: #ffffff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  padding: calc(8px + var(--sat)) 14px 8px;
+}
+
+/* Mobil pastki navigatsiya paneli (desktopda yashirin) */
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* Tablet & Kichik Desktop (<= 1024px) */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: min(276px, 84vw);
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop.open {
+    display: block;
+  }
+  .main-wrap {
+    margin-left: 0;
+    width: 100%;
+  }
+  .menu-toggle {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+  }
+  .topbar-search {
+    width: 180px;
+  }
+}
+
+/* Barcha Telefonlar (<= 768px: iPhone SE 375px, Android 360–412px, Pro Max 430px) */
+@media (max-width: 768px) {
+  .topbar {
+    height: calc(56px + var(--sat));
+    padding: var(--sat) calc(12px + var(--sar)) 0 calc(12px + var(--sal));
+    gap: 8px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .topbar-search,
+  .user-meta {
+    display: none;
+  }
+
+  .user-chip {
+    padding: 3px;
+    border-radius: 9px;
+  }
+
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .icon-btn,
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .page-content {
+    padding: 14px calc(12px + var(--sar)) calc(var(--bottom-nav-h) + var(--sab) + 22px) calc(12px + var(--sal));
+  }
+
+  .page-header {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .page-header h2 {
+    font-size: 18px !important;
+  }
+
+  /* Barcha formalar va filtrlar telefonda 100% kenglikda, iOS zoom oldini olish uchun 16px */
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .btn {
+    min-height: 42px;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding: 0 11px;
+  }
+
+  .toolbar {
+    gap: 8px;
+  }
+  .toolbar > .input,
+  .toolbar > .select,
+  .toolbar > .btn {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  /* Jadvallar telefonda silliq gorizontal scroll bilan, chegaradan chiqmaydi */
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 10px 10px;
+    font-size: 13.5px;
+  }
+
+  /* KPI kartalar: 2 ustunli qulay ko'rinish */
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .kpi-card {
+    padding: 13px 14px;
+  }
+  .kpi-value {
+    font-size: 19px;
+  }
+
+  /* Tablar silliq scroll bilan */
+  .tabs {
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Pastki PWA Bottom Navigation */
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 38;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: calc(var(--bottom-nav-h) + var(--sab));
+    padding: 4px var(--sar) var(--sab) var(--sal);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15, 32, 36, 0.06);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 4px 2px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.1;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+  }
+
+  .bottom-nav-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .bottom-nav-item span {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--primary-ink);
+  }
+
+  /* Toast xabarlari pastki menyudan yuqorida chiqsin */
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--bottom-nav-h) + var(--sab) + 12px);
+  }
+  .toast {
+    max-width: 100%;
+  }
+
+  /* Modallar telefonda bottom-sheet uslubida, safe-area bilan */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-box,
+  .modal-box.modal-lg {
+    width: 100%;
+    max-height: calc(92dvh - var(--sat));
+    border-radius: 18px 18px 0 0;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+  .modal-foot {
+    padding: 12px 16px calc(12px + var(--sab));
+  }
+}
+
+/* Juda kichik ekranlar (<= 375px: iPhone SE, kichik Android) */
+@media (max-width: 375px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-title {
+    font-size: 15px;
+  }
+  .bottom-nav-item {
+    font-size: 10.5px;
+  }
+  .bottom-nav-item svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+/* Login sahifasi telefonda safe-area bilan */
+.auth-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(20px + var(--sat)) calc(16px + var(--sar)) calc(20px + var(--sab)) calc(16px + var(--sal));
+}
+
+/* Standalone PWA rejimida qo'shimcha barqarorlik */
+@media (display-mode: standalone) {
+  .topbar {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

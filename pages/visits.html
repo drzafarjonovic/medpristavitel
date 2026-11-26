@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tashriflar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Tashriflar jurnali</h2>
+            <p class="page-subtitle">Tarixiy xizmat narxlari, qisman to'lovlar va bekor qilish/qaytarish nazorati.</p>
+          </div>
+          <a class="btn btn-primary hidden" id="btn-go-reception" href="reception.html">
+            <i data-lucide="plus"></i>
+            <span>Yangi tashrif</span>
+          </a>
+        </div>
+
+        <div class="toolbar">
+          <input class="input grow" id="filter-q" type="search" placeholder="Tashrif kodi, bemor, shifokor kodi yoki medpred...">
+          <input class="input" id="filter-from" type="date" style="width:155px;" title="Dan">
+          <input class="input" id="filter-to" type="date" style="width:155px;" title="Gacha">
+          <select class="select" id="filter-pay" style="width:150px;">
+            <option value="">Barcha to'lov</option>
+            <option value="paid">To'langan</option>
+            <option value="partial">Qisman</option>
+            <option value="unpaid">To'lanmagan</option>
+            <option value="refunded">Qaytarilgan</option>
+          </select>
+          <select class="select" id="filter-status" style="width:140px;">
+            <option value="">Barcha holat</option>
+            <option value="completed">Bajarildi</option>
+            <option value="cancelled">Bekor qilingan</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kod / Sana</th>
+                  <th>Bemor</th>
+                  <th>Shifokor (snapshot)</th>
+                  <th>Medpred (snapshot)</th>
+                  <th class="text-right">Yakuniy summa</th>
+                  <th class="text-right">To'langan</th>
+                  <th>Holat</th>
+                  <th class="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="vis-tbody">
+                <tr><td colspan="8" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="vis-footer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/visits.js"></script>
+</body>
+</html>

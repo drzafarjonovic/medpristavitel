@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Xizmatlar va narxlar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Xizmatlar va narxlar katalogi</h2>
+            <p class="page-subtitle">Narx o'zgarganda faqat yangi tashriflar yangi narxda hisoblanadi; eski tashriflar o'zgarmaydi.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn" id="btn-export-srv">
+              <i data-lucide="download"></i>
+              <span>Excel export</span>
+            </button>
+            <a class="btn hidden" id="btn-import-srv" href="imports.html?entity=services">
+              <i data-lucide="upload"></i>
+              <span>Excel import</span>
+            </a>
+            <button type="button" class="btn hidden" id="btn-cats">
+              <i data-lucide="folder-plus"></i>
+              <span>Kategoriyalar</span>
+            </button>
+            <button type="button" class="btn btn-primary hidden" id="btn-add-srv">
+              <i data-lucide="plus"></i>
+              <span>Yangi xizmat</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="input grow" id="filter-q" type="search" placeholder="Kod yoki xizmat nomi bo'yicha qidirish...">
+          <select class="select" id="filter-cat" style="width:200px;">
+            <option value="">Barcha kategoriyalar</option>
+          </select>
+          <select class="select" id="filter-status" style="width:140px;">
+            <option value="">Barcha holatlar</option>
+            <option value="active">Faol</option>
+            <option value="inactive">Nofaol</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kod</th>
+                  <th>Xizmat nomi</th>
+                  <th>Kategoriya</th>
+                  <th>Filial</th>
+                  <th class="text-right">Narxi</th>
+                  <th>Holat</th>
+                  <th>Yangilangan</th>
+                  <th class="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="srv-tbody">
+                <tr><td colspan="8" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="srv-footer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/excel.js"></script>
+  <script src="../assets/js/modules/services.js"></script>
+</body>
+</html>

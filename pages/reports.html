@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hisobotlar — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
+
+      <main class="page-content" id="page-content">
+        <div class="page-header">
+          <div>
+            <h2 style="margin:0;font-size:20px;">Hisobotlar markazi</h2>
+            <p class="page-subtitle">10 turdagi boshqaruv va moliyaviy hisobotlarni ko'rish hamda Excel/CSV formatida yuklab olish.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn" id="btn-export-csv">CSV yuklash</button>
+            <button type="button" class="btn btn-primary" id="btn-export-xlsx">
+              <i data-lucide="file-spreadsheet"></i>
+              <span>Excel yuklash (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card card-body" style="margin-bottom:16px;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Hisobot turi</label>
+              <select class="select" id="rep-type">
+                <option value="daily_visits">1. Kunlik tashriflar</option>
+                <option value="monthly_visits">2. Oylik tashriflar</option>
+                <option value="range_visits">3. Sana oralig'i bo'yicha tashriflar</option>
+                <option value="by_doctors">4. Shifokorlar kesimidagi bemorlar va tushum</option>
+                <option value="by_medpreds">5. Medpredlar kesimidagi bemorlar va tushum</option>
+                <option value="by_services">6. Xizmatlar kesimidagi tushum</option>
+                <option value="payment_statuses">7. To'lov holatlari</option>
+                <option value="temp_bonuses">8. Vaqtinchalik ulushlar (prototip)</option>
+                <option value="payments_list">9. Qayd etilgan to'lovlar</option>
+                <option value="balances">10. Qoldiq balanslar (prototip)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Sana oralig'i (dan — gacha)</label>
+              <div style="display:flex;gap:8px;">
+                <input class="input" id="rep-from" type="date">
+                <input class="input" id="rep-to" type="date">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 id="rep-title">Hisobot</h3>
+            <span class="badge badge-primary" id="rep-count">0 qator</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead id="rep-thead"></thead>
+              <tbody id="rep-tbody">
+                <tr><td class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/excel.js"></script>
+  <script src="../assets/js/modules/reports.js"></script>
+</body>
+</html>
