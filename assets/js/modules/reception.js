@@ -1,5 +1,8 @@
 /**
- * MedPred CRM — Qabulxona 6 bosqichli tezkor ish jarayoni
+ * MedPred CRM — Takomillashtirilgan Tezkor Qabulxona
+ * - Alohida "Yangi bemor" modali yo'q: ism (+ ixtiyoriy telefon) yozilsa avtomatik topadi yoki saqlashda o'zi yaratadi.
+ * - Tezkor shifokor chiplari + qisqa kod bilan Enter bosib tanlash.
+ * - Kategoriya chiplari va 1 bosishda xizmat qo'shish.
  */
 (async function () {
   const user = await window.Auth.initPage("reception", "Qabulxona");
@@ -18,26 +21,30 @@
     bonusEnabled: true,
     selectedPatient: null,
     selectedDoctor: null,
-    cart: [] // { service_id, name, price, quantity }
+    selectedCat: "",
+    payMethod: "cash",
+    cart: []
   };
 
   const els = {
-    patQ: document.getElementById("rec-pat-q"),
+    patName: document.getElementById("rec-pat-name"),
+    patPhone: document.getElementById("rec-pat-phone"),
+    patPill: document.getElementById("pat-status-pill"),
+    patBar: document.getElementById("pat-selected-bar"),
     patList: document.getElementById("rec-pat-list"),
-    patSelected: document.getElementById("patient-selected"),
-    patPicker: document.getElementById("patient-picker"),
     docQ: document.getElementById("rec-doc-q"),
+    docQuick: document.getElementById("rec-doc-quick"),
     docList: document.getElementById("rec-doc-list"),
     docSelected: document.getElementById("doctor-selected"),
     docPicker: document.getElementById("doctor-picker"),
+    srvCats: document.getElementById("rec-srv-cats"),
     srvQ: document.getElementById("rec-srv-q"),
-    srvCat: document.getElementById("rec-srv-cat"),
     srvList: document.getElementById("rec-srv-list"),
+    srvCount: document.getElementById("srv-cart-count"),
     cartItems: document.getElementById("cart-items"),
     discount: document.getElementById("rec-discount"),
-    discountGroup: document.getElementById("discount-group"),
+    rowDiscount: document.getElementById("row-discount"),
     paid: document.getElementById("rec-paid"),
-    payMethod: document.getElementById("rec-pay-method"),
     notes: document.getElementById("rec-notes"),
     sumSub: document.getElementById("sum-subtotal"),
     sumDisc: document.getElementById("sum-discount"),
@@ -52,7 +59,7 @@
     todayStart.setHours(0, 0, 0, 0);
 
     const [pRes, dRes, wpRes, cRes, sRes, setRes, vRes] = await Promise.all([
-      window.sb.from("patients").select("id, patient_code, full_name, phone, phone_normalized").order("created_at", { ascending: false }).limit(500),
+      window.sb.from("patients").select("id, patient_code, full_name, phone, phone_normalized").order("created_at", { ascending: false }).limit(800),
       window.sb.from("doctors").select("id, doctor_code, full_name, temp_rate_pct, specialties(name), medpreds(id, full_name, medpred_code, temp_rate_pct)").eq("status", "active").order("full_name"),
       window.sb.from("doctor_workplaces").select("doctor_id, is_primary, organizations(name)").eq("is_active", true),
       window.sb.from("service_categories").select("id, name").eq("is_active", true).order("sort_order"),
@@ -81,118 +88,109 @@
       els.discount.disabled = true;
     }
 
-    els.srvCat.innerHTML = `<option value="">Barcha kategoriyalar</option>` +
-      state.categories.map((c) => `<option value="${c.id}">${window.CRM.esc(c.name)}</option>`).join("");
-
-    // URL orqali patient_id kelgan bo'lsa avtomatik tanlash
     const urlPatId = new URLSearchParams(window.location.search).get("patient_id");
     if (urlPatId && !state.selectedPatient) {
       const found = state.patients.find((p) => p.id === urlPatId);
       if (found) selectPatient(found);
     }
 
+    renderQuickDoctors();
+    renderCategoryPills();
     renderServicesList();
     renderTodayVisits();
   }
 
-  // ---------- 1-QADAM: BEMOR ----------
-  function renderPatientMatches() {
-    const q = els.patQ.value.trim().toLowerCase();
-    const digits = q.replace(/\D/g, "");
-    if (!q) {
+  // ---------- 1-QADAM: BEMOR (AVTO QIDIRUV + AVTO YARATISH) ----------
+  function onPatientInput() {
+    // Agar foydalanuvchi tanlangan bemorni qo'lda tahrirlab boshlasa, bog'lanishni uzamiz
+    if (state.selectedPatient) {
+      const sameName = els.patName.value.trim() === state.selectedPatient.full_name;
+      const samePhone = els.patPhone.value.trim() === (state.selectedPatient.phone || "");
+      if (!sameName || !samePhone) {
+        state.selectedPatient = null;
+        els.patBar.classList.add("hidden");
+      }
+    }
+
+    const nameQ = els.patName.value.trim().toLowerCase();
+    const phoneQ = els.patPhone.value.trim();
+    const digits = phoneQ.replace(/\D/g, "");
+
+    if (!nameQ && !digits) {
       els.patList.classList.add("hidden");
+      els.patPill.className = "badge badge-neutral";
+      els.patPill.textContent = "Ism yoki telefon yozing";
       return;
     }
+
     const matches = state.patients.filter((p) => {
-      const hay = [p.patient_code, p.full_name, p.phone].join(" ").toLowerCase();
-      return hay.includes(q) || (digits.length >= 4 && (p.phone_normalized || "").includes(digits));
-    }).slice(0, 12);
+      const nameHit = nameQ.length >= 2 && (
+        p.full_name.toLowerCase().includes(nameQ) ||
+        p.patient_code.toLowerCase().includes(nameQ)
+      );
+      const phoneHit = digits.length >= 4 && (p.phone_normalized || "").includes(digits);
+      return nameHit || phoneHit;
+    }).slice(0, 8);
 
-    els.patList.classList.remove("hidden");
-    if (!matches.length) {
-      els.patList.innerHTML = `<div style="padding:12px;font-size:13.5px;color:var(--muted);">Bemor topilmadi. «+ Yangi bemor» tugmasini bosing.</div>`;
-      return;
-    }
-    els.patList.innerHTML = matches.map((p) => `
-      <div class="pick-item" data-pat-id="${p.id}">
-        <div>
-          <strong>${window.CRM.esc(p.full_name)}</strong>
-          <div class="text-muted mono" style="font-size:12px;">${window.CRM.esc(p.patient_code)} · ${window.CRM.esc(p.phone || "Telefonsiz")}</div>
-        </div>
-        <span class="badge badge-primary">Tanlash</span>
-      </div>`).join("");
+    // Aniq telefon mos kelsa ogohlantirish/taklif
+    if (matches.length) {
+      els.patList.classList.remove("hidden");
+      els.patList.innerHTML = matches.map((p) => `
+        <div class="pick-item" data-pat-id="${p.id}">
+          <div>
+            <strong>${window.CRM.esc(p.full_name)}</strong>
+            <div class="text-muted mono" style="font-size:12px;">${window.CRM.esc(p.patient_code)} · ${window.CRM.esc(p.phone || "Telefonsiz")}</div>
+          </div>
+          <span class="badge badge-primary">Mavjudni tanlash</span>
+        </div>`).join("");
 
-    els.patList.querySelectorAll("[data-pat-id]").forEach((el) => {
-      el.addEventListener("click", () => {
-        const found = state.patients.find((x) => x.id === el.dataset.patId);
-        if (found) selectPatient(found);
+      els.patList.querySelectorAll("[data-pat-id]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const found = state.patients.find((x) => x.id === el.dataset.patId);
+          if (found) selectPatient(found);
+        });
       });
-    });
+    } else {
+      els.patList.classList.add("hidden");
+    }
+
+    if (!state.selectedPatient) {
+      if (els.patName.value.trim().length >= 2) {
+        els.patPill.className = "badge badge-info";
+        els.patPill.textContent = "Yangi bemor — saqlashda avtomatik qo'shiladi";
+      } else {
+        els.patPill.className = "badge badge-neutral";
+        els.patPill.textContent = "Bemor F.I.Sh. ni kiriting";
+      }
+    }
   }
 
   function selectPatient(p) {
     state.selectedPatient = p;
-    els.patPicker.classList.add("hidden");
-    els.patSelected.classList.remove("hidden");
-    els.patSelected.innerHTML = `
-      <div class="selected-box">
-        <div>
-          <strong>${window.CRM.esc(p.full_name)}</strong>
-          <div class="mono text-muted" style="font-size:12.5px;">${window.CRM.esc(p.patient_code)} · ${window.CRM.esc(p.phone || "Telefonsiz")}</div>
-        </div>
-        <button type="button" class="btn btn-sm" id="btn-change-pat">Almashtirish</button>
-      </div>`;
-    document.getElementById("btn-change-pat")?.addEventListener("click", () => {
+    els.patName.value = p.full_name;
+    els.patPhone.value = p.phone || "";
+    els.patList.classList.add("hidden");
+    els.patPill.className = "badge badge-success";
+    els.patPill.textContent = `Bazadan topildi (${p.patient_code})`;
+    els.patBar.classList.remove("hidden");
+    els.patBar.innerHTML = `
+      <div style="font-size:13px;">
+        <strong>${window.CRM.esc(p.full_name)}</strong>
+        <span class="mono text-muted">(${window.CRM.esc(p.patient_code)})</span>
+        ${p.phone ? ` · <span class="mono">${window.CRM.esc(p.phone)}</span>` : ""}
+      </div>
+      <button type="button" class="btn btn-sm" id="btn-clear-pat">Boshqa bemor</button>`;
+    document.getElementById("btn-clear-pat")?.addEventListener("click", () => {
       state.selectedPatient = null;
-      els.patSelected.classList.add("hidden");
-      els.patPicker.classList.remove("hidden");
-      els.patQ.focus();
+      els.patName.value = "";
+      els.patPhone.value = "";
+      els.patBar.classList.add("hidden");
+      onPatientInput();
+      els.patName.focus();
     });
   }
 
-  function openQuickNewPatientModal() {
-    window.CRM.openModal(
-      "Tezkor yangi bemor yaratish",
-      `<form id="quick-pat-form" class="form-grid">
-        <div class="form-group full">
-          <label>F.I.Sh. *</label>
-          <input class="input" name="full_name" required placeholder="Karimova Malika">
-        </div>
-        <div class="form-group">
-          <label>Telefon raqami (ixtiyoriy)</label>
-          <input class="input" name="phone" placeholder="+998 90 123 45 67" value="${window.CRM.esc(/^\+?\d/.test(els.patQ.value.trim()) ? els.patQ.value.trim() : "")}">
-        </div>
-        <div class="form-group">
-          <label>Tug'ilgan sana (ixtiyoriy)</label>
-          <input class="input" name="birth_date" type="date">
-        </div>
-      </form>`,
-      `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor qilish</button>
-       <button type="submit" form="quick-pat-form" class="btn btn-primary">Yaratish va tanlash</button>`
-    );
-
-    document.getElementById("quick-pat-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      const { data, error } = await window.sb.from("patients").insert({
-        full_name: String(fd.get("full_name") || "").trim(),
-        phone: String(fd.get("phone") || "").trim(),
-        birth_date: fd.get("birth_date") || null,
-        created_by: user.id
-      }).select().single();
-
-      if (error) {
-        window.CRM.toast("Xato: " + error.message, "error");
-        return;
-      }
-      state.patients.unshift(data);
-      selectPatient(data);
-      window.CRM.closeModal();
-      window.CRM.toast(`Bemor yaratildi: ${data.patient_code}`, "success");
-    });
-  }
-
-  // ---------- 2-QADAM: SHIFOKOR -> MEDPRED AVTOMATIK ----------
+  // ---------- 2-QADAM: SHIFOKOR + TEZKOR CHIPLAR ----------
   function doctorOrgNames(docId) {
     return state.workplaces
       .filter((w) => w.doctor_id === docId)
@@ -201,21 +199,46 @@
       .join(", ");
   }
 
+  function renderQuickDoctors() {
+    const top = state.doctors.slice(0, 6);
+    if (!top.length) {
+      els.docQuick.innerHTML = "";
+      return;
+    }
+    els.docQuick.innerHTML = top.map((d) => `
+      <button type="button" class="chip-btn" data-qdoc="${d.id}">
+        <span class="mono" style="color:var(--primary-ink);font-weight:700;">${window.CRM.esc(d.doctor_code)}</span>
+        <span>${window.CRM.esc(d.full_name.split(" ")[0])}</span>
+      </button>`).join("");
+
+    els.docQuick.querySelectorAll("[data-qdoc]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const found = state.doctors.find((x) => x.id === b.dataset.qdoc);
+        if (found) selectDoctor(found);
+      });
+    });
+  }
+
+  function findDoctorMatches(rawQ) {
+    const q = rawQ.trim().toLowerCase();
+    if (!q) return [];
+    const normCode = /^\d{1,5}$/.test(q) ? "dr-" + q.padStart(4, "0") : "";
+    return state.doctors.filter((d) => {
+      const hay = [d.doctor_code, d.full_name, d.specialties?.name, doctorOrgNames(d.id)].join(" ").toLowerCase();
+      return hay.includes(q) || (normCode && d.doctor_code.toLowerCase().includes(normCode));
+    }).slice(0, 10);
+  }
+
   function renderDoctorMatches() {
-    const q = els.docQ.value.trim().toLowerCase();
+    const q = els.docQ.value.trim();
     if (!q) {
       els.docList.classList.add("hidden");
       return;
     }
-    const normCode = /^\d{1,5}$/.test(q) ? "dr-" + q.padStart(4, "0") : "";
-    const matches = state.doctors.filter((d) => {
-      const hay = [d.doctor_code, d.full_name, d.specialties?.name, doctorOrgNames(d.id)].join(" ").toLowerCase();
-      return hay.includes(q) || (normCode && d.doctor_code.toLowerCase().includes(normCode));
-    }).slice(0, 12);
-
+    const matches = findDoctorMatches(q);
     els.docList.classList.remove("hidden");
     if (!matches.length) {
-      els.docList.innerHTML = `<div style="padding:12px;font-size:13.5px;color:var(--muted);">Shifokor topilmadi.</div>`;
+      els.docList.innerHTML = `<div style="padding:10px 12px;font-size:13px;color:var(--muted);">Shifokor topilmadi.</div>`;
       return;
     }
     els.docList.innerHTML = matches.map((d) => `
@@ -224,7 +247,7 @@
           <span class="badge badge-primary mono">${window.CRM.esc(d.doctor_code)}</span>
           <strong style="margin-left:6px;">${window.CRM.esc(d.full_name)}</strong>
           <div class="text-muted" style="font-size:12px;">
-            ${window.CRM.esc(d.specialties?.name || "—")} · ${window.CRM.esc(doctorOrgNames(d.id) || "Ish joyi ko'rsatilmagan")}
+            ${window.CRM.esc(d.specialties?.name || "—")} · ${window.CRM.esc(d.medpreds?.full_name || "Medpred yo'q")}
           </div>
         </div>
         <span class="badge badge-success">Tanlash</span>
@@ -249,8 +272,7 @@
           <span class="badge badge-primary mono">${window.CRM.esc(d.doctor_code)}</span>
           <strong style="margin-left:6px;">${window.CRM.esc(d.full_name)}</strong>
           <div class="text-muted" style="font-size:12.5px;margin-top:3px;">
-            ${window.CRM.esc(d.specialties?.name || "—")} · ${window.CRM.esc(doctorOrgNames(d.id) || "—")}<br>
-            <strong>Medpredstavitel (avtomatik):</strong> ${window.CRM.esc(mpName)}
+            ${window.CRM.esc(d.specialties?.name || "—")} · <strong>Medpred:</strong> ${window.CRM.esc(mpName)}
           </div>
         </div>
         <button type="button" class="btn btn-sm" id="btn-change-doc">Almashtirish</button>
@@ -259,36 +281,56 @@
       state.selectedDoctor = null;
       els.docSelected.classList.add("hidden");
       els.docPicker.classList.remove("hidden");
+      els.docQ.value = "";
+      els.docList.classList.add("hidden");
       els.docQ.focus();
     });
   }
 
-  // ---------- 3-QADAM: XIZMATLAR SAVATI ----------
+  // ---------- 3-QADAM: KATEGORIYA CHIPLARI + XIZMATLAR ----------
+  function renderCategoryPills() {
+    const items = [{ id: "", name: "Barchasi" }, ...state.categories];
+    els.srvCats.innerHTML = items.map((c) => `
+      <button type="button" class="chip-btn${state.selectedCat === c.id ? " active" : ""}" data-cat="${c.id}">
+        ${window.CRM.esc(c.name)}
+      </button>`).join("");
+
+    els.srvCats.querySelectorAll("[data-cat]").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.selectedCat = b.dataset.cat;
+        renderCategoryPills();
+        renderServicesList();
+      });
+    });
+  }
+
   function renderServicesList() {
     const q = els.srvQ.value.trim().toLowerCase();
-    const catId = els.srvCat.value;
     const list = state.services.filter((s) => {
-      if (catId && s.category_id !== catId) return false;
+      if (state.selectedCat && s.category_id !== state.selectedCat) return false;
       if (q && ![s.name, s.service_code, s.service_categories?.name].join(" ").toLowerCase().includes(q)) return false;
       return true;
-    }).slice(0, 30);
+    }).slice(0, 40);
 
     if (!list.length) {
-      els.srvList.innerHTML = `<div style="padding:14px;font-size:13.5px;color:var(--muted);">Xizmatlar topilmadi. «Xizmatlar» bo'limida yoki Excel orqali xizmat qo'shing.</div>`;
+      els.srvList.innerHTML = `<div style="padding:12px;font-size:13.5px;color:var(--muted);">Xizmatlar topilmadi.</div>`;
       return;
     }
 
-    els.srvList.innerHTML = list.map((s) => `
-      <div class="pick-item" data-srv-id="${s.id}">
+    els.srvList.innerHTML = list.map((s) => {
+      const inCart = state.cart.find((c) => c.service_id === s.id);
+      return `
+      <div class="pick-item${inCart ? " in-cart" : ""}" data-srv-id="${s.id}">
         <div>
           <strong>${window.CRM.esc(s.name)}</strong>
           <div class="text-muted" style="font-size:12px;">${window.CRM.esc(s.service_categories?.name || "—")}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <strong class="mono">${window.CRM.fmtSom(s.price)}</strong>
-          <span class="badge badge-primary">+ Qo'shish</span>
+          <span class="badge ${inCart ? "badge-success" : "badge-primary"}">${inCart ? `×${inCart.quantity}` : "+"}</span>
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
 
     els.srvList.querySelectorAll("[data-srv-id]").forEach((el) => {
       el.addEventListener("click", () => addToCart(el.dataset.srvId));
@@ -299,23 +341,24 @@
     const srv = state.services.find((s) => s.id === serviceId);
     if (!srv) return;
     const existing = state.cart.find((c) => c.service_id === serviceId);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      state.cart.push({ service_id: srv.id, name: srv.name, price: Number(srv.price || 0), quantity: 1 });
-    }
+    if (existing) existing.quantity += 1;
+    else state.cart.push({ service_id: srv.id, name: srv.name, price: Number(srv.price || 0), quantity: 1 });
     renderCart();
+    renderServicesList();
   }
 
   function renderCart() {
+    const totalItems = state.cart.reduce((s, c) => s + c.quantity, 0);
+    els.srvCount.textContent = `${totalItems} ta tanlandi`;
+
     if (!state.cart.length) {
-      els.cartItems.innerHTML = `<div class="text-muted" style="font-size:13.5px;padding:10px 0;">Hali xizmat tanlanmagan.</div>`;
+      els.cartItems.innerHTML = `<div class="text-muted" style="font-size:13.5px;padding:8px 0;">Chapdan xizmatlarni bosing — bu yerga qo'shiladi.</div>`;
     } else {
       els.cartItems.innerHTML = state.cart.map((c, idx) => `
         <div class="cart-row">
           <div>
             <strong>${window.CRM.esc(c.name)}</strong>
-            <div class="mono text-muted" style="font-size:12px;">${window.CRM.fmtSom(c.price)} × ${c.quantity}</div>
+            <div class="mono text-muted" style="font-size:12px;">${window.CRM.fmtSom(c.price)}</div>
           </div>
           <div class="qty-ctrl">
             <button type="button" data-dec="${idx}">−</button>
@@ -329,15 +372,15 @@
       els.cartItems.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => {
         const i = Number(b.dataset.dec);
         if (state.cart[i].quantity > 1) state.cart[i].quantity--; else state.cart.splice(i, 1);
-        renderCart();
+        renderCart(); renderServicesList();
       }));
       els.cartItems.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => {
         state.cart[Number(b.dataset.inc)].quantity++;
-        renderCart();
+        renderCart(); renderServicesList();
       }));
       els.cartItems.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => {
         state.cart.splice(Number(b.dataset.rm), 1);
-        renderCart();
+        renderCart(); renderServicesList();
       }));
     }
     recalcTotals(true);
@@ -348,7 +391,7 @@
     const discount = Math.max(0, Math.min(subtotal, Number(els.discount.value || 0)));
     const total = Math.max(0, subtotal - discount);
     const paid = Math.max(0, Math.min(total, Number(els.paid.value || 0)));
-    const status = paid === 0 ? "unpaid" : (paid < total ? "partial" : "paid");
+    const status = total === 0 ? "empty" : (paid === 0 ? "unpaid" : (paid < total ? "partial" : "paid"));
     return { subtotal, discount, total, paid, status };
   }
 
@@ -358,87 +401,112 @@
     const t = calcTotals();
     els.sumSub.textContent = window.CRM.fmtSom(t.subtotal);
     els.sumDisc.textContent = window.CRM.fmtSom(t.discount);
+    els.rowDiscount.style.display = t.discount > 0 ? "flex" : "none";
     els.sumTot.textContent = window.CRM.fmtSom(t.total);
     const badgeMap = {
+      empty: `<span class="badge badge-neutral">Kutilmoqda</span>`,
       paid: `<span class="badge badge-success">To'langan</span>`,
-      partial: `<span class="badge badge-warning">Qisman to'langan</span>`,
+      partial: `<span class="badge badge-warning">Qisman</span>`,
       unpaid: `<span class="badge badge-danger">To'lanmagan</span>`
     };
     els.sumBadge.innerHTML = badgeMap[t.status];
   }
 
-  // ---------- 6-QADAM: TASDIQLASH VA ATOMIK SAQLASH ----------
+  // ---------- 4-QADAM: TASDIQLASH VA AVTOMATIK BEMOR + TASHRIF SAQLASH ----------
   function openConfirmModal() {
-    if (!state.selectedPatient) return window.CRM.toast("1-qadam: Avval bemorni tanlang", "warning");
-    if (!state.selectedDoctor) return window.CRM.toast("2-qadam: Yo'llanma bergan shifokorni tanlang", "warning");
-    if (!state.cart.length) return window.CRM.toast("3-qadam: Kamida bitta xizmat tanlang", "warning");
+    const typedName = els.patName.value.trim();
+    const typedPhone = els.patPhone.value.trim();
+    if (!state.selectedPatient && typedName.length < 2) {
+      els.patName.focus();
+      return window.CRM.toast("1-qadam: Bemor F.I.Sh. ni kiriting", "warning");
+    }
+    if (!state.selectedDoctor) {
+      els.docQ.focus();
+      return window.CRM.toast("2-qadam: Shifokorni tanlang", "warning");
+    }
+    if (!state.cart.length) {
+      return window.CRM.toast("3-qadam: Kamida bitta xizmat tanlang", "warning");
+    }
 
     const t = calcTotals();
     const d = state.selectedDoctor;
-    const p = state.selectedPatient;
     const mp = d.medpreds;
+    const isNewPat = !state.selectedPatient;
+    const patNameShow = isNewPat ? typedName : state.selectedPatient.full_name;
+    const patPhoneShow = isNewPat ? typedPhone : (state.selectedPatient.phone || "");
+    const methodLbl = { cash: "Naqd", card: "Karta", transfer: "O'tkazma" }[state.payMethod] || state.payMethod;
+
     const docPct = Number(d.temp_rate_pct || 0);
     const repPct = Number(mp?.temp_rate_pct || 0);
     const docBonus = state.bonusEnabled ? Math.round(t.total * docPct / 100) : 0;
     const repBonus = (state.bonusEnabled && mp) ? Math.round(t.total * repPct / 100) : 0;
 
-    const srvRows = state.cart.map((c) => `<tr>
-      <td>${window.CRM.esc(c.name)}</td>
-      <td class="text-right mono">${c.quantity}</td>
-      <td class="text-right mono">${window.CRM.fmtSom(c.price)}</td>
-      <td class="text-right mono"><strong>${window.CRM.fmtSom(c.price * c.quantity)}</strong></td>
-    </tr>`).join("");
-
     window.CRM.openModal(
       "Tashrifni tasdiqlash",
       `<div style="display:grid;gap:12px;">
-        <div class="card" style="padding:14px;background:var(--surface-2);">
-          <div><strong>Bemor:</strong> ${window.CRM.esc(p.full_name)} <span class="mono">(${window.CRM.esc(p.patient_code)})</span> · ${window.CRM.esc(p.phone || "Telefonsiz")}</div>
+        <div class="card" style="padding:12px 14px;background:var(--surface-2);font-size:14px;">
+          <div><strong>Bemor:</strong> ${window.CRM.esc(patNameShow)} ${isNewPat ? `<span class="badge badge-info">Yangi — avto qo'shiladi</span>` : `<span class="mono text-muted">(${window.CRM.esc(state.selectedPatient.patient_code)})</span>`}</div>
+          ${patPhoneShow ? `<div><strong>Telefon:</strong> <span class="mono">${window.CRM.esc(patPhoneShow)}</span></div>` : ""}
           <div><strong>Shifokor:</strong> ${window.CRM.esc(d.full_name)} <span class="mono">(${window.CRM.esc(d.doctor_code)})</span></div>
-          <div><strong>Medpred (avtomatik):</strong> ${window.CRM.esc(mp?.full_name || "Biriktirilmagan")}</div>
+          <div><strong>Medpred:</strong> ${window.CRM.esc(mp?.full_name || "Biriktirilmagan")}</div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Xizmat</th><th class="text-right">Soni</th><th class="text-right">Narxi</th><th class="text-right">Jami</th></tr></thead>
-            <tbody>${srvRows}</tbody>
+            <thead><tr><th>Xizmat</th><th class="text-right">Soni</th><th class="text-right">Jami</th></tr></thead>
+            <tbody>${state.cart.map((c) => `<tr>
+              <td>${window.CRM.esc(c.name)}</td>
+              <td class="text-right mono">${c.quantity}</td>
+              <td class="text-right mono"><strong>${window.CRM.fmtSom(c.price * c.quantity)}</strong></td>
+            </tr>`).join("")}</tbody>
           </table>
         </div>
-        <div style="border-top:1px solid var(--border);padding-top:10px;">
-          <div class="sum-line"><span>Xizmatlar jami:</span><strong class="mono">${window.CRM.fmtSom(t.subtotal)}</strong></div>
-          <div class="sum-line"><span>Chegirma:</span><span class="mono">${window.CRM.fmtSom(t.discount)}</span></div>
-          <div class="sum-line total"><span>Yakuniy summa:</span><span class="mono">${window.CRM.fmtSom(t.total)}</span></div>
-          <div class="sum-line"><span>To'lanmoqda (${window.CRM.esc(els.payMethod.value)}):</span><strong class="mono">${window.CRM.fmtSom(t.paid)}</strong></div>
+        <div style="border-top:1px solid var(--border);padding-top:8px;">
+          <div class="sum-line total" style="border-top:0;margin-top:0;padding-top:0;"><span>Yakuniy summa:</span><span class="mono">${window.CRM.fmtSom(t.total)}</span></div>
+          <div class="sum-line"><span>To'lanmoqda (${methodLbl}):</span><strong class="mono">${window.CRM.fmtSom(t.paid)}</strong></div>
         </div>
         ${canSeeBonus && state.bonusEnabled ? `
-        <div class="alert alert-info" style="margin-bottom:0;">
+        <div class="alert alert-info" style="margin:0;font-size:12.5px;">
           <i data-lucide="calculator"></i>
-          <div><strong>Vaqtinchalik hisob-kitob (prototip):</strong> Shifokor (${docPct}%): ${window.CRM.fmtSom(docBonus)} · Medpred (${repPct}%): ${window.CRM.fmtSom(repBonus)} · Klinika: ${window.CRM.fmtSom(t.total - docBonus - repBonus)}</div>
+          <div>Prototip hisob: Shifokor (${docPct}%) ${window.CRM.fmtSom(docBonus)} · Medpred (${repPct}%) ${window.CRM.fmtSom(repBonus)}</div>
         </div>` : ""}
       </div>`,
       `<button type="button" class="btn" onclick="window.CRM.closeModal()">Orqaga</button>
-       <button type="button" class="btn btn-primary" id="btn-commit-visit">Tasdiqlash va saqlash</button>`,
-      true
+       <button type="button" class="btn btn-primary" id="btn-commit-visit">Saqlash</button>`
     );
 
     document.getElementById("btn-commit-visit")?.addEventListener("click", async (ev) => {
       ev.target.disabled = true;
       try {
+        // Agar bemor bazada bo'lmasa — avtomatik yaratamiz!
+        let patientId = state.selectedPatient?.id;
+        if (!patientId) {
+          const { data: createdPat, error: patErr } = await window.sb.from("patients").insert({
+            full_name: typedName,
+            phone: typedPhone,
+            created_by: user.id
+          }).select().single();
+          if (patErr) throw new Error("Bemor yaratishda xato: " + patErr.message);
+          patientId = createdPat.id;
+        }
+
         const res = await window.CRM.rpc("rpc_create_visit", {
-          p_patient_id: p.id,
+          p_patient_id: patientId,
           p_doctor_id: d.id,
           p_services: state.cart.map((c) => ({ service_id: c.service_id, quantity: c.quantity })),
           p_branch_id: user.branch_id || null,
           p_discount: t.discount,
           p_paid_amount: t.paid,
-          p_payment_method: els.payMethod.value,
+          p_payment_method: state.payMethod,
           p_notes: els.notes.value.trim()
         });
+
         window.CRM.closeModal();
-        window.CRM.toast(`Tashrif saqlandi: ${res.visit_code}`, "success");
+        window.CRM.toast(`Saqlandi: ${res.visit_code}`, "success");
         resetForm();
         await loadCatalogs();
+        els.patName.focus();
       } catch (err) {
-        window.CRM.toast("Saqlashda xato: " + err.message, "error");
+        window.CRM.toast("Xato: " + err.message, "error");
         ev.target.disabled = false;
       }
     });
@@ -448,18 +516,21 @@
     state.selectedPatient = null;
     state.selectedDoctor = null;
     state.cart = [];
-    els.patQ.value = "";
-    els.docQ.value = "";
-    els.discount.value = "0";
-    els.paid.value = "0";
-    els.notes.value = "";
-    els.patSelected.classList.add("hidden");
-    els.patPicker.classList.remove("hidden");
+    els.patName.value = "";
+    els.patPhone.value = "";
+    els.patBar.classList.add("hidden");
     els.patList.classList.add("hidden");
+    els.patPill.className = "badge badge-neutral";
+    els.patPill.textContent = "Ism yoki telefon yozing";
+    els.docQ.value = "";
     els.docSelected.classList.add("hidden");
     els.docPicker.classList.remove("hidden");
     els.docList.classList.add("hidden");
+    els.discount.value = "0";
+    els.paid.value = "0";
+    els.notes.value = "";
     renderCart();
+    renderServicesList();
   }
 
   function renderTodayVisits() {
@@ -475,7 +546,7 @@
     els.todayTbody.innerHTML = state.todayVisits.map((v) => {
       const rem = Number(v.total_amount || 0) - Number(v.paid_amount || 0);
       const badge = v.status === "cancelled"
-        ? `<span class="badge badge-danger">Bekor qilingan</span>`
+        ? `<span class="badge badge-danger">Bekor</span>`
         : v.payment_status === "paid"
           ? `<span class="badge badge-success">To'langan</span>`
           : v.payment_status === "partial"
@@ -510,27 +581,22 @@
 
   function openPartialPayModal(visitId, rem) {
     window.CRM.openModal(
-      "Qo'shimcha / qisman to'lov qayd etish",
+      "Qolgan to'lovni qayd etish",
       `<form id="part-pay-form" class="form-grid">
         <div class="form-group">
           <label>Summa (qoldiq: ${window.CRM.fmtSom(rem)}) *</label>
           <input class="input mono" name="amount" type="number" min="1" max="${rem}" required value="${Math.round(rem)}">
         </div>
         <div class="form-group">
-          <label>To'lov usuli</label>
+          <label>Usul</label>
           <select class="select" name="method">
             <option value="cash">Naqd</option>
             <option value="card">Plastik karta</option>
             <option value="transfer">O'tkazma</option>
-            <option value="other">Boshqa</option>
           </select>
         </div>
-        <div class="form-group full">
-          <label>Izoh</label>
-          <input class="input" name="note" placeholder="Qolgan to'lov...">
-        </div>
       </form>`,
-      `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor qilish</button>
+      `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor</button>
        <button type="submit" form="part-pay-form" class="btn btn-primary">Saqlash</button>`
     );
 
@@ -542,7 +608,7 @@
           p_visit_id: visitId,
           p_amount: Number(fd.get("amount")),
           p_payment_method: fd.get("method"),
-          p_note: String(fd.get("note") || "").trim()
+          p_note: "Qabulxonadan qolgan to'lov"
         });
         window.CRM.closeModal();
         window.CRM.toast("To'lov qayd etildi", "success");
@@ -553,17 +619,29 @@
     });
   }
 
-  els.patQ.addEventListener("input", renderPatientMatches);
+  // Event listeners
+  els.patName.addEventListener("input", onPatientInput);
+  els.patPhone.addEventListener("input", onPatientInput);
   els.docQ.addEventListener("input", renderDoctorMatches);
+  els.docQ.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const m = findDoctorMatches(els.docQ.value);
+      if (m.length === 1) { e.preventDefault(); selectDoctor(m[0]); }
+    }
+  });
   els.srvQ.addEventListener("input", renderServicesList);
-  els.srvCat.addEventListener("change", renderServicesList);
   els.discount.addEventListener("input", () => recalcTotals(true));
   els.paid.addEventListener("input", () => recalcTotals(false));
-  document.getElementById("btn-pay-full")?.addEventListener("click", () => recalcTotals(true));
   document.getElementById("btn-pay-zero")?.addEventListener("click", () => { els.paid.value = "0"; recalcTotals(false); });
-  document.getElementById("btn-quick-new-pat")?.addEventListener("click", openQuickNewPatientModal);
+  document.querySelectorAll("#pay-methods .pay-method-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.payMethod = btn.dataset.method;
+      document.querySelectorAll("#pay-methods .pay-method-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
   document.getElementById("btn-review-visit")?.addEventListener("click", openConfirmModal);
   document.getElementById("btn-reset-form")?.addEventListener("click", resetForm);
 
   await loadCatalogs();
+  els.patName.focus();
 })();
