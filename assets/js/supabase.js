@@ -9,7 +9,10 @@
       return null;
     }
     try {
-      return window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+     return window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+        db: {
+          schema: "medpred"
+        },
         auth: {
           persistSession: true,
           autoRefreshToken: true,
