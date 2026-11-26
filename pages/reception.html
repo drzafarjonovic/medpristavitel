@@ -1,647 +1,236 @@
-/**
- * MedPred CRM — Takomillashtirilgan Tezkor Qabulxona
- * - Alohida "Yangi bemor" modali yo'q: ism (+ ixtiyoriy telefon) yozilsa avtomatik topadi yoki saqlashda o'zi yaratadi.
- * - Tezkor shifokor chiplari + qisqa kod bilan Enter bosib tanlash.
- * - Kategoriya chiplari va 1 bosishda xizmat qo'shish.
- */
-(async function () {
-  const user = await window.Auth.initPage("reception", "Qabulxona");
-  if (!user) return;
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Qabulxona (Tezkor tashrif) — MedPred CRM</title>
+  <meta name="theme-color" content="#0c6f78">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedPred CRM">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+  <style>
+    .rec-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; }
+    .step-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .step-title { display: flex; align-items: center; gap: 9px; }
+    .step-num { width: 25px; height: 25px; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; flex-shrink: 0; }
+    .step-head h3 { margin: 0; font-size: 15px; }
 
-  const canSeeBonus = ["SUPERADMIN", "DIRECTOR"].includes(user.role);
+    .pick-list { margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; max-height: 210px; overflow-y: auto; background: var(--surface); }
+    .pick-item { padding: 9px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; transition: background .12s; }
+    .pick-item:last-child { border-bottom: 0; }
+    .pick-item:hover { background: var(--primary-soft); }
+    .pick-item.in-cart { background: #edf8f2; }
 
-  const state = {
-    patients: [],
-    doctors: [],
-    workplaces: [],
-    services: [],
-    categories: [],
-    todayVisits: [],
-    allowDiscount: true,
-    bonusEnabled: true,
-    selectedPatient: null,
-    selectedDoctor: null,
-    selectedCat: "",
-    payMethod: "cash",
-    cart: []
-  };
+    .selected-box { padding: 10px 13px; border-radius: 10px; background: var(--primary-soft); border: 1px solid #b6dde0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip-btn { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface-2); font-size: 12.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all .12s; }
+    .chip-btn:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-ink); }
+    .chip-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-  const els = {
-    patName: document.getElementById("rec-pat-name"),
-    patPhone: document.getElementById("rec-pat-phone"),
-    patPill: document.getElementById("pat-status-pill"),
-    patBar: document.getElementById("pat-selected-bar"),
-    patList: document.getElementById("rec-pat-list"),
-    docQ: document.getElementById("rec-doc-q"),
-    docQuick: document.getElementById("rec-doc-quick"),
-    docList: document.getElementById("rec-doc-list"),
-    docSelected: document.getElementById("doctor-selected"),
-    docPicker: document.getElementById("doctor-picker"),
-    srvCats: document.getElementById("rec-srv-cats"),
-    srvQ: document.getElementById("rec-srv-q"),
-    srvList: document.getElementById("rec-srv-list"),
-    srvCount: document.getElementById("srv-cart-count"),
-    cartItems: document.getElementById("cart-items"),
-    discount: document.getElementById("rec-discount"),
-    rowDiscount: document.getElementById("row-discount"),
-    paid: document.getElementById("rec-paid"),
-    notes: document.getElementById("rec-notes"),
-    sumSub: document.getElementById("sum-subtotal"),
-    sumDisc: document.getElementById("sum-discount"),
-    sumTot: document.getElementById("sum-total"),
-    sumBadge: document.getElementById("sum-pay-badge"),
-    todayTbody: document.getElementById("today-tbody"),
-    todaySum: document.getElementById("today-summary")
-  };
+    .cat-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
+    .cat-pills::-webkit-scrollbar { display: none; }
+    .cat-pills .chip-btn { flex-shrink: 0; }
 
-  async function loadCatalogs() {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    .pay-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .pay-method-btn { height: 38px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--surface); font-weight: 600; font-size: 13px; cursor: pointer; transition: all .12s; }
+    .pay-method-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-    const [pRes, dRes, wpRes, cRes, sRes, setRes, vRes] = await Promise.all([
-      window.sb.from("patients").select("id, patient_code, full_name, phone, phone_normalized").order("created_at", { ascending: false }).limit(800),
-      window.sb.from("doctors").select("id, doctor_code, full_name, temp_rate_pct, specialties(name), medpreds(id, full_name, medpred_code, temp_rate_pct)").eq("status", "active").order("full_name"),
-      window.sb.from("doctor_workplaces").select("doctor_id, is_primary, organizations(name)").eq("is_active", true),
-      window.sb.from("service_categories").select("id, name").eq("is_active", true).order("sort_order"),
-      window.sb.from("services").select("id, service_code, name, price, category_id, service_categories(name)").eq("is_active", true).order("name"),
-      window.sb.from("system_settings").select("key, value").in("key", ["allow_reception_discount", "referral_calc_enabled"]),
-      window.sb.from("visits")
-        .select("id, visit_code, visit_date, doctor_code_snapshot, doctor_name_snapshot, medpred_name_snapshot, total_amount, paid_amount, payment_status, status, patients(full_name, phone)")
-        .gte("visit_date", todayStart.toISOString())
-        .order("visit_date", { ascending: false })
-    ]);
+    .cart-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+    .cart-row:last-child { border-bottom: 0; }
+    .qty-ctrl { display: inline-flex; align-items: center; gap: 5px; }
+    .qty-ctrl button { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 700; }
 
-    state.patients = pRes.data || [];
-    state.doctors = dRes.data || [];
-    state.workplaces = wpRes.data || [];
-    state.categories = cRes.data || [];
-    state.services = sRes.data || [];
-    state.todayVisits = vRes.data || [];
+    .summary-sticky { position: sticky; top: 76px; }
+    .sum-line { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+    .sum-line.total { border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 700; color: var(--primary-ink); }
 
-    (setRes.data || []).forEach((row) => {
-      if (row.key === "allow_reception_discount") state.allowDiscount = Boolean(row.value);
-      if (row.key === "referral_calc_enabled") state.bonusEnabled = Boolean(row.value);
-    });
+    @media (max-width: 980px) { .rec-grid { grid-template-columns: 1fr; } .summary-sticky { position: static; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-    if (user.role === "RECEPTION" && !state.allowDiscount) {
-      els.discount.value = "0";
-      els.discount.disabled = true;
-    }
+    <div class="main-wrap">
+      <header class="topbar" id="app-topbar"></header>
 
-    const urlPatId = new URLSearchParams(window.location.search).get("patient_id");
-    if (urlPatId && !state.selectedPatient) {
-      const found = state.patients.find((p) => p.id === urlPatId);
-      if (found) selectPatient(found);
-    }
-
-    renderQuickDoctors();
-    renderCategoryPills();
-    renderServicesList();
-    renderTodayVisits();
-  }
-
-  // ---------- 1-QADAM: BEMOR (AVTO QIDIRUV + AVTO YARATISH) ----------
-  function onPatientInput() {
-    // Agar foydalanuvchi tanlangan bemorni qo'lda tahrirlab boshlasa, bog'lanishni uzamiz
-    if (state.selectedPatient) {
-      const sameName = els.patName.value.trim() === state.selectedPatient.full_name;
-      const samePhone = els.patPhone.value.trim() === (state.selectedPatient.phone || "");
-      if (!sameName || !samePhone) {
-        state.selectedPatient = null;
-        els.patBar.classList.add("hidden");
-      }
-    }
-
-    const nameQ = els.patName.value.trim().toLowerCase();
-    const phoneQ = els.patPhone.value.trim();
-    const digits = phoneQ.replace(/\D/g, "");
-
-    if (!nameQ && !digits) {
-      els.patList.classList.add("hidden");
-      els.patPill.className = "badge badge-neutral";
-      els.patPill.textContent = "Ism yoki telefon yozing";
-      return;
-    }
-
-    const matches = state.patients.filter((p) => {
-      const nameHit = nameQ.length >= 2 && (
-        p.full_name.toLowerCase().includes(nameQ) ||
-        p.patient_code.toLowerCase().includes(nameQ)
-      );
-      const phoneHit = digits.length >= 4 && (p.phone_normalized || "").includes(digits);
-      return nameHit || phoneHit;
-    }).slice(0, 8);
-
-    // Aniq telefon mos kelsa ogohlantirish/taklif
-    if (matches.length) {
-      els.patList.classList.remove("hidden");
-      els.patList.innerHTML = matches.map((p) => `
-        <div class="pick-item" data-pat-id="${p.id}">
+      <main class="page-content" id="page-content">
+        <div class="page-header">
           <div>
-            <strong>${window.CRM.esc(p.full_name)}</strong>
-            <div class="text-muted mono" style="font-size:12px;">${window.CRM.esc(p.patient_code)} · ${window.CRM.esc(p.phone || "Telefonsiz")}</div>
+            <h2 style="margin:0;font-size:20px;">Tezkor Qabulxona</h2>
+            <p class="page-subtitle">Bemor ismini yozing (bazada bo'lmasa avtomatik qo'shiladi), shifokor va xizmatni tanlang.</p>
           </div>
-          <span class="badge badge-primary">Mavjudni tanlash</span>
-        </div>`).join("");
-
-      els.patList.querySelectorAll("[data-pat-id]").forEach((el) => {
-        el.addEventListener("click", () => {
-          const found = state.patients.find((x) => x.id === el.dataset.patId);
-          if (found) selectPatient(found);
-        });
-      });
-    } else {
-      els.patList.classList.add("hidden");
-    }
-
-    if (!state.selectedPatient) {
-      if (els.patName.value.trim().length >= 2) {
-        els.patPill.className = "badge badge-info";
-        els.patPill.textContent = "Yangi bemor — saqlashda avtomatik qo'shiladi";
-      } else {
-        els.patPill.className = "badge badge-neutral";
-        els.patPill.textContent = "Bemor F.I.Sh. ni kiriting";
-      }
-    }
-  }
-
-  function selectPatient(p) {
-    state.selectedPatient = p;
-    els.patName.value = p.full_name;
-    els.patPhone.value = p.phone || "";
-    els.patList.classList.add("hidden");
-    els.patPill.className = "badge badge-success";
-    els.patPill.textContent = `Bazadan topildi (${p.patient_code})`;
-    els.patBar.classList.remove("hidden");
-    els.patBar.innerHTML = `
-      <div style="font-size:13px;">
-        <strong>${window.CRM.esc(p.full_name)}</strong>
-        <span class="mono text-muted">(${window.CRM.esc(p.patient_code)})</span>
-        ${p.phone ? ` · <span class="mono">${window.CRM.esc(p.phone)}</span>` : ""}
-      </div>
-      <button type="button" class="btn btn-sm" id="btn-clear-pat">Boshqa bemor</button>`;
-    document.getElementById("btn-clear-pat")?.addEventListener("click", () => {
-      state.selectedPatient = null;
-      els.patName.value = "";
-      els.patPhone.value = "";
-      els.patBar.classList.add("hidden");
-      onPatientInput();
-      els.patName.focus();
-    });
-  }
-
-  // ---------- 2-QADAM: SHIFOKOR + TEZKOR CHIPLAR ----------
-  function doctorOrgNames(docId) {
-    return state.workplaces
-      .filter((w) => w.doctor_id === docId)
-      .map((w) => w.organizations?.name)
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  function renderQuickDoctors() {
-    const top = state.doctors.slice(0, 6);
-    if (!top.length) {
-      els.docQuick.innerHTML = "";
-      return;
-    }
-    els.docQuick.innerHTML = top.map((d) => `
-      <button type="button" class="chip-btn" data-qdoc="${d.id}">
-        <span class="mono" style="color:var(--primary-ink);font-weight:700;">${window.CRM.esc(d.doctor_code)}</span>
-        <span>${window.CRM.esc(d.full_name.split(" ")[0])}</span>
-      </button>`).join("");
-
-    els.docQuick.querySelectorAll("[data-qdoc]").forEach((b) => {
-      b.addEventListener("click", () => {
-        const found = state.doctors.find((x) => x.id === b.dataset.qdoc);
-        if (found) selectDoctor(found);
-      });
-    });
-  }
-
-  function findDoctorMatches(rawQ) {
-    const q = rawQ.trim().toLowerCase();
-    if (!q) return [];
-    const normCode = /^\d{1,5}$/.test(q) ? "dr-" + q.padStart(4, "0") : "";
-    return state.doctors.filter((d) => {
-      const hay = [d.doctor_code, d.full_name, d.specialties?.name, doctorOrgNames(d.id)].join(" ").toLowerCase();
-      return hay.includes(q) || (normCode && d.doctor_code.toLowerCase().includes(normCode));
-    }).slice(0, 10);
-  }
-
-  function renderDoctorMatches() {
-    const q = els.docQ.value.trim();
-    if (!q) {
-      els.docList.classList.add("hidden");
-      return;
-    }
-    const matches = findDoctorMatches(q);
-    els.docList.classList.remove("hidden");
-    if (!matches.length) {
-      els.docList.innerHTML = `<div style="padding:10px 12px;font-size:13px;color:var(--muted);">Shifokor topilmadi.</div>`;
-      return;
-    }
-    els.docList.innerHTML = matches.map((d) => `
-      <div class="pick-item" data-doc-id="${d.id}">
-        <div>
-          <span class="badge badge-primary mono">${window.CRM.esc(d.doctor_code)}</span>
-          <strong style="margin-left:6px;">${window.CRM.esc(d.full_name)}</strong>
-          <div class="text-muted" style="font-size:12px;">
-            ${window.CRM.esc(d.specialties?.name || "—")} · ${window.CRM.esc(d.medpreds?.full_name || "Medpred yo'q")}
-          </div>
+          <button type="button" class="btn btn-sm" id="btn-reset-form">
+            <i data-lucide="rotate-ccw"></i>
+            <span>Tozalash</span>
+          </button>
         </div>
-        <span class="badge badge-success">Tanlash</span>
-      </div>`).join("");
 
-    els.docList.querySelectorAll("[data-doc-id]").forEach((el) => {
-      el.addEventListener("click", () => {
-        const found = state.doctors.find((x) => x.id === el.dataset.docId);
-        if (found) selectDoctor(found);
-      });
-    });
-  }
-
-  function selectDoctor(d) {
-    state.selectedDoctor = d;
-    els.docPicker.classList.add("hidden");
-    els.docSelected.classList.remove("hidden");
-    const mpName = d.medpreds?.full_name || "Biriktirilmagan";
-    els.docSelected.innerHTML = `
-      <div class="selected-box">
-        <div>
-          <span class="badge badge-primary mono">${window.CRM.esc(d.doctor_code)}</span>
-          <strong style="margin-left:6px;">${window.CRM.esc(d.full_name)}</strong>
-          <div class="text-muted" style="font-size:12.5px;margin-top:3px;">
-            ${window.CRM.esc(d.specialties?.name || "—")} · <strong>Medpred:</strong> ${window.CRM.esc(mpName)}
-          </div>
-        </div>
-        <button type="button" class="btn btn-sm" id="btn-change-doc">Almashtirish</button>
-      </div>`;
-    document.getElementById("btn-change-doc")?.addEventListener("click", () => {
-      state.selectedDoctor = null;
-      els.docSelected.classList.add("hidden");
-      els.docPicker.classList.remove("hidden");
-      els.docQ.value = "";
-      els.docList.classList.add("hidden");
-      els.docQ.focus();
-    });
-  }
-
-  // ---------- 3-QADAM: KATEGORIYA CHIPLARI + XIZMATLAR ----------
-  function renderCategoryPills() {
-    const items = [{ id: "", name: "Barchasi" }, ...state.categories];
-    els.srvCats.innerHTML = items.map((c) => `
-      <button type="button" class="chip-btn${state.selectedCat === c.id ? " active" : ""}" data-cat="${c.id}">
-        ${window.CRM.esc(c.name)}
-      </button>`).join("");
-
-    els.srvCats.querySelectorAll("[data-cat]").forEach((b) => {
-      b.addEventListener("click", () => {
-        state.selectedCat = b.dataset.cat;
-        renderCategoryPills();
-        renderServicesList();
-      });
-    });
-  }
-
-  function renderServicesList() {
-    const q = els.srvQ.value.trim().toLowerCase();
-    const list = state.services.filter((s) => {
-      if (state.selectedCat && s.category_id !== state.selectedCat) return false;
-      if (q && ![s.name, s.service_code, s.service_categories?.name].join(" ").toLowerCase().includes(q)) return false;
-      return true;
-    }).slice(0, 40);
-
-    if (!list.length) {
-      els.srvList.innerHTML = `<div style="padding:12px;font-size:13.5px;color:var(--muted);">Xizmatlar topilmadi.</div>`;
-      return;
-    }
-
-    els.srvList.innerHTML = list.map((s) => {
-      const inCart = state.cart.find((c) => c.service_id === s.id);
-      return `
-      <div class="pick-item${inCart ? " in-cart" : ""}" data-srv-id="${s.id}">
-        <div>
-          <strong>${window.CRM.esc(s.name)}</strong>
-          <div class="text-muted" style="font-size:12px;">${window.CRM.esc(s.service_categories?.name || "—")}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <strong class="mono">${window.CRM.fmtSom(s.price)}</strong>
-          <span class="badge ${inCart ? "badge-success" : "badge-primary"}">${inCart ? `×${inCart.quantity}` : "+"}</span>
-        </div>
-      </div>`;
-    }).join("");
-
-    els.srvList.querySelectorAll("[data-srv-id]").forEach((el) => {
-      el.addEventListener("click", () => addToCart(el.dataset.srvId));
-    });
-  }
-
-  function addToCart(serviceId) {
-    const srv = state.services.find((s) => s.id === serviceId);
-    if (!srv) return;
-    const existing = state.cart.find((c) => c.service_id === serviceId);
-    if (existing) existing.quantity += 1;
-    else state.cart.push({ service_id: srv.id, name: srv.name, price: Number(srv.price || 0), quantity: 1 });
-    renderCart();
-    renderServicesList();
-  }
-
-  function renderCart() {
-    const totalItems = state.cart.reduce((s, c) => s + c.quantity, 0);
-    els.srvCount.textContent = `${totalItems} ta tanlandi`;
-
-    if (!state.cart.length) {
-      els.cartItems.innerHTML = `<div class="text-muted" style="font-size:13.5px;padding:8px 0;">Chapdan xizmatlarni bosing — bu yerga qo'shiladi.</div>`;
-    } else {
-      els.cartItems.innerHTML = state.cart.map((c, idx) => `
-        <div class="cart-row">
+        <div class="rec-grid">
+          <!-- CHAP USTUN: 1. Bemor, 2. Shifokor, 3. Xizmatlar -->
           <div>
-            <strong>${window.CRM.esc(c.name)}</strong>
-            <div class="mono text-muted" style="font-size:12px;">${window.CRM.fmtSom(c.price)}</div>
+            <!-- 1-QADAM: BEMOR (Avtomatik topish yoki yangi sifatida saqlash — alohida modal yo'q!) -->
+            <div class="step-card">
+              <div class="step-head">
+                <div class="step-title">
+                  <span class="step-num">1</span>
+                  <h3>Bemor</h3>
+                </div>
+                <span id="pat-status-pill" class="badge badge-neutral">Ism yoki telefon yozing</span>
+              </div>
+
+              <div class="form-grid" style="gap:10px;">
+                <div class="form-group">
+                  <label for="rec-pat-name">F.I.Sh. *</label>
+                  <input class="input" id="rec-pat-name" type="text" placeholder="Masalan: Karimova Malika" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="rec-pat-phone">Telefon (ixtiyoriy)</label>
+                  <input class="input" id="rec-pat-phone" type="tel" placeholder="+998 90 123 45 67" autocomplete="off">
+                </div>
+              </div>
+
+              <div id="pat-selected-bar" class="selected-box hidden" style="margin-top:10px;"></div>
+              <div id="rec-pat-list" class="pick-list hidden"></div>
+            </div>
+
+            <!-- 2-QADAM: SHIFOKOR (Kod/Ism + Tezkor chiplar -> Medpred avtomatik) -->
+            <div class="step-card">
+              <div class="step-head">
+                <div class="step-title">
+                  <span class="step-num">2</span>
+                  <h3>Yo'llanma bergan shifokor</h3>
+                </div>
+                <span class="text-muted" style="font-size:12px;">Medpred avtomatik chiqadi</span>
+              </div>
+
+              <div id="doctor-selected" class="hidden"></div>
+              <div id="doctor-picker">
+                <input class="input" id="rec-doc-q" type="search" placeholder="Shifokor kodi (12 yoki DR-0012) yoxud F.I.Sh. yozing...">
+                <div id="rec-doc-quick" class="quick-chips"></div>
+                <div id="rec-doc-list" class="pick-list hidden"></div>
+              </div>
+            </div>
+
+            <!-- 3-QADAM: XIZMATLAR (Kategoriya chiplari + 1 bosishda qo'shish) -->
+            <div class="step-card">
+              <div class="step-head">
+                <div class="step-title">
+                  <span class="step-num">3</span>
+                  <h3>Xizmatlar</h3>
+                </div>
+                <span class="badge badge-info" id="srv-cart-count">0 ta tanlandi</span>
+              </div>
+
+              <div id="rec-srv-cats" class="cat-pills"></div>
+              <input class="input" id="rec-srv-q" type="search" placeholder="Xizmat nomini qidiring (UZI, qon tahlili, ko'rik...)">
+              <div id="rec-srv-list" class="pick-list" style="max-height:240px;"></div>
+            </div>
           </div>
-          <div class="qty-ctrl">
-            <button type="button" data-dec="${idx}">−</button>
-            <span class="mono">${c.quantity}</span>
-            <button type="button" data-inc="${idx}">+</button>
+
+          <!-- O'NG USTUN: Savat, To'lov va Tezkor Saqlash -->
+          <div class="summary-sticky">
+            <div class="step-card">
+              <div class="step-head">
+                <div class="step-title">
+                  <span class="step-num">4</span>
+                  <h3>Savat va to'lov</h3>
+                </div>
+                <span id="sum-pay-badge"><span class="badge badge-neutral">Kutilmoqda</span></span>
+              </div>
+
+              <div id="cart-items" style="margin-bottom:12px;">
+                <div class="text-muted" style="font-size:13.5px;padding:8px 0;">Chapdan xizmatlarni bosing — bu yerga qo'shiladi.</div>
+              </div>
+
+              <div style="display:grid;gap:10px;margin-bottom:12px;">
+                <div class="form-group">
+                  <label>To'lov usuli</label>
+                  <div class="pay-methods" id="pay-methods">
+                    <button type="button" class="pay-method-btn active" data-method="cash">Naqd</button>
+                    <button type="button" class="pay-method-btn" data-method="card">Karta</button>
+                    <button type="button" class="pay-method-btn" data-method="transfer">O'tkazma</button>
+                  </div>
+                </div>
+
+                <div class="form-grid" style="gap:10px;">
+                  <div class="form-group">
+                    <label style="display:flex;justify-content:space-between;">
+                      <span>To'langan (so'm)</span>
+                      <button type="button" class="btn btn-ghost btn-sm" id="btn-pay-zero" style="height:20px;padding:0 5px;font-size:11.5px;">0 so'm</button>
+                    </label>
+                    <input class="input mono" id="rec-paid" type="number" min="0" step="1000" value="0">
+                  </div>
+                  <div class="form-group" id="discount-group">
+                    <label>Chegirma (so'm)</label>
+                    <input class="input mono" id="rec-discount" type="number" min="0" step="1000" value="0">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <input class="input" id="rec-notes" placeholder="Izoh (ixtiyoriy)...">
+                </div>
+              </div>
+
+              <div style="border-top:1px solid var(--border);padding-top:8px;">
+                <div class="sum-line"><span>Xizmatlar jami:</span><span class="mono" id="sum-subtotal">0 so'm</span></div>
+                <div class="sum-line" id="row-discount" style="display:none;"><span>Chegirma:</span><span class="mono" id="sum-discount">0 so'm</span></div>
+                <div class="sum-line total"><span>Jami to'lov:</span><span class="mono" id="sum-total">0 so'm</span></div>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-lg" id="btn-review-visit" style="width:100%;margin-top:12px;">
+                <i data-lucide="check-circle-2"></i>
+                <span>Tasdiqlash va saqlash</span>
+              </button>
+            </div>
           </div>
-          <strong class="mono">${window.CRM.fmtSom(c.price * c.quantity)}</strong>
-          <button type="button" class="btn btn-ghost btn-sm" data-rm="${idx}" style="color:var(--danger);padding:0 6px;">×</button>
-        </div>`).join("");
-
-      els.cartItems.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => {
-        const i = Number(b.dataset.dec);
-        if (state.cart[i].quantity > 1) state.cart[i].quantity--; else state.cart.splice(i, 1);
-        renderCart(); renderServicesList();
-      }));
-      els.cartItems.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => {
-        state.cart[Number(b.dataset.inc)].quantity++;
-        renderCart(); renderServicesList();
-      }));
-      els.cartItems.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => {
-        state.cart.splice(Number(b.dataset.rm), 1);
-        renderCart(); renderServicesList();
-      }));
-    }
-    recalcTotals(true);
-  }
-
-  function calcTotals() {
-    const subtotal = state.cart.reduce((s, c) => s + c.price * c.quantity, 0);
-    const discount = Math.max(0, Math.min(subtotal, Number(els.discount.value || 0)));
-    const total = Math.max(0, subtotal - discount);
-    const paid = Math.max(0, Math.min(total, Number(els.paid.value || 0)));
-    const status = total === 0 ? "empty" : (paid === 0 ? "unpaid" : (paid < total ? "partial" : "paid"));
-    return { subtotal, discount, total, paid, status };
-  }
-
-  function recalcTotals(autoFillPaid = false) {
-    const pre = calcTotals();
-    if (autoFillPaid) els.paid.value = String(Math.round(pre.total));
-    const t = calcTotals();
-    els.sumSub.textContent = window.CRM.fmtSom(t.subtotal);
-    els.sumDisc.textContent = window.CRM.fmtSom(t.discount);
-    els.rowDiscount.style.display = t.discount > 0 ? "flex" : "none";
-    els.sumTot.textContent = window.CRM.fmtSom(t.total);
-    const badgeMap = {
-      empty: `<span class="badge badge-neutral">Kutilmoqda</span>`,
-      paid: `<span class="badge badge-success">To'langan</span>`,
-      partial: `<span class="badge badge-warning">Qisman</span>`,
-      unpaid: `<span class="badge badge-danger">To'lanmagan</span>`
-    };
-    els.sumBadge.innerHTML = badgeMap[t.status];
-  }
-
-  // ---------- 4-QADAM: TASDIQLASH VA AVTOMATIK BEMOR + TASHRIF SAQLASH ----------
-  function openConfirmModal() {
-    const typedName = els.patName.value.trim();
-    const typedPhone = els.patPhone.value.trim();
-    if (!state.selectedPatient && typedName.length < 2) {
-      els.patName.focus();
-      return window.CRM.toast("1-qadam: Bemor F.I.Sh. ni kiriting", "warning");
-    }
-    if (!state.selectedDoctor) {
-      els.docQ.focus();
-      return window.CRM.toast("2-qadam: Shifokorni tanlang", "warning");
-    }
-    if (!state.cart.length) {
-      return window.CRM.toast("3-qadam: Kamida bitta xizmat tanlang", "warning");
-    }
-
-    const t = calcTotals();
-    const d = state.selectedDoctor;
-    const mp = d.medpreds;
-    const isNewPat = !state.selectedPatient;
-    const patNameShow = isNewPat ? typedName : state.selectedPatient.full_name;
-    const patPhoneShow = isNewPat ? typedPhone : (state.selectedPatient.phone || "");
-    const methodLbl = { cash: "Naqd", card: "Karta", transfer: "O'tkazma" }[state.payMethod] || state.payMethod;
-
-    const docPct = Number(d.temp_rate_pct || 0);
-    const repPct = Number(mp?.temp_rate_pct || 0);
-    const docBonus = state.bonusEnabled ? Math.round(t.total * docPct / 100) : 0;
-    const repBonus = (state.bonusEnabled && mp) ? Math.round(t.total * repPct / 100) : 0;
-
-    window.CRM.openModal(
-      "Tashrifni tasdiqlash",
-      `<div style="display:grid;gap:12px;">
-        <div class="card" style="padding:12px 14px;background:var(--surface-2);font-size:14px;">
-          <div><strong>Bemor:</strong> ${window.CRM.esc(patNameShow)} ${isNewPat ? `<span class="badge badge-info">Yangi — avto qo'shiladi</span>` : `<span class="mono text-muted">(${window.CRM.esc(state.selectedPatient.patient_code)})</span>`}</div>
-          ${patPhoneShow ? `<div><strong>Telefon:</strong> <span class="mono">${window.CRM.esc(patPhoneShow)}</span></div>` : ""}
-          <div><strong>Shifokor:</strong> ${window.CRM.esc(d.full_name)} <span class="mono">(${window.CRM.esc(d.doctor_code)})</span></div>
-          <div><strong>Medpred:</strong> ${window.CRM.esc(mp?.full_name || "Biriktirilmagan")}</div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Xizmat</th><th class="text-right">Soni</th><th class="text-right">Jami</th></tr></thead>
-            <tbody>${state.cart.map((c) => `<tr>
-              <td>${window.CRM.esc(c.name)}</td>
-              <td class="text-right mono">${c.quantity}</td>
-              <td class="text-right mono"><strong>${window.CRM.fmtSom(c.price * c.quantity)}</strong></td>
-            </tr>`).join("")}</tbody>
-          </table>
+
+        <!-- BUGUNGI TASHRIFLAR -->
+        <div class="card" style="margin-top:6px;">
+          <div class="card-header">
+            <h3>Bugungi tashriflar</h3>
+            <span class="badge badge-primary" id="today-summary">0 ta · 0 so'm</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Vaqt / Kod</th>
+                  <th>Bemor</th>
+                  <th>Shifokor / Medpred</th>
+                  <th class="text-right">Summa</th>
+                  <th class="text-right">To'langan</th>
+                  <th>Holat</th>
+                  <th class="text-right">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="today-tbody">
+                <tr><td colspan="7" class="empty-state">Yuklanmoqda...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div style="border-top:1px solid var(--border);padding-top:8px;">
-          <div class="sum-line total" style="border-top:0;margin-top:0;padding-top:0;"><span>Yakuniy summa:</span><span class="mono">${window.CRM.fmtSom(t.total)}</span></div>
-          <div class="sum-line"><span>To'lanmoqda (${methodLbl}):</span><strong class="mono">${window.CRM.fmtSom(t.paid)}</strong></div>
-        </div>
-        ${canSeeBonus && state.bonusEnabled ? `
-        <div class="alert alert-info" style="margin:0;font-size:12.5px;">
-          <i data-lucide="calculator"></i>
-          <div>Prototip hisob: Shifokor (${docPct}%) ${window.CRM.fmtSom(docBonus)} · Medpred (${repPct}%) ${window.CRM.fmtSom(repBonus)}</div>
-        </div>` : ""}
-      </div>`,
-      `<button type="button" class="btn" onclick="window.CRM.closeModal()">Orqaga</button>
-       <button type="button" class="btn btn-primary" id="btn-commit-visit">Saqlash</button>`
-    );
+      </main>
+    </div>
+  </div>
 
-    document.getElementById("btn-commit-visit")?.addEventListener("click", async (ev) => {
-      ev.target.disabled = true;
-      try {
-        // Agar bemor bazada bo'lmasa — avtomatik yaratamiz!
-        let patientId = state.selectedPatient?.id;
-        if (!patientId) {
-          const { data: createdPat, error: patErr } = await window.sb.from("patients").insert({
-            full_name: typedName,
-            phone: typedPhone,
-            created_by: user.id
-          }).select().single();
-          if (patErr) throw new Error("Bemor yaratishda xato: " + patErr.message);
-          patientId = createdPat.id;
-        }
-
-        const res = await window.CRM.rpc("rpc_create_visit", {
-          p_patient_id: patientId,
-          p_doctor_id: d.id,
-          p_services: state.cart.map((c) => ({ service_id: c.service_id, quantity: c.quantity })),
-          p_branch_id: user.branch_id || null,
-          p_discount: t.discount,
-          p_paid_amount: t.paid,
-          p_payment_method: state.payMethod,
-          p_notes: els.notes.value.trim()
-        });
-
-        window.CRM.closeModal();
-        window.CRM.toast(`Saqlandi: ${res.visit_code}`, "success");
-        resetForm();
-        await loadCatalogs();
-        els.patName.focus();
-      } catch (err) {
-        window.CRM.toast("Xato: " + err.message, "error");
-        ev.target.disabled = false;
-      }
-    });
-  }
-
-  function resetForm() {
-    state.selectedPatient = null;
-    state.selectedDoctor = null;
-    state.cart = [];
-    els.patName.value = "";
-    els.patPhone.value = "";
-    els.patBar.classList.add("hidden");
-    els.patList.classList.add("hidden");
-    els.patPill.className = "badge badge-neutral";
-    els.patPill.textContent = "Ism yoki telefon yozing";
-    els.docQ.value = "";
-    els.docSelected.classList.add("hidden");
-    els.docPicker.classList.remove("hidden");
-    els.docList.classList.add("hidden");
-    els.discount.value = "0";
-    els.paid.value = "0";
-    els.notes.value = "";
-    renderCart();
-    renderServicesList();
-  }
-
-  function renderTodayVisits() {
-    const active = state.todayVisits.filter((v) => v.status === "completed");
-    const totalSum = active.reduce((s, v) => s + Number(v.total_amount || 0), 0);
-    els.todaySum.textContent = `${active.length} ta · ${window.CRM.fmtSom(totalSum)}`;
-
-    if (!state.todayVisits.length) {
-      els.todayTbody.innerHTML = `<tr><td colspan="7" class="empty-state">Bugun hali tashrif qayd etilmagan.</td></tr>`;
-      return;
-    }
-
-    els.todayTbody.innerHTML = state.todayVisits.map((v) => {
-      const rem = Number(v.total_amount || 0) - Number(v.paid_amount || 0);
-      const badge = v.status === "cancelled"
-        ? `<span class="badge badge-danger">Bekor</span>`
-        : v.payment_status === "paid"
-          ? `<span class="badge badge-success">To'langan</span>`
-          : v.payment_status === "partial"
-            ? `<span class="badge badge-warning">Qisman</span>`
-            : `<span class="badge badge-danger">To'lanmagan</span>`;
-      return `<tr>
-        <td>
-          <strong class="mono">${window.CRM.esc(v.visit_code)}</strong>
-          <div class="text-muted mono" style="font-size:12px;">${window.CRM.fmtDateTime(v.visit_date)}</div>
-        </td>
-        <td>
-          <strong>${window.CRM.esc(v.patients?.full_name || "—")}</strong>
-          <div class="text-muted mono" style="font-size:12px;">${window.CRM.esc(v.patients?.phone || "")}</div>
-        </td>
-        <td>
-          <div>${window.CRM.esc(v.doctor_name_snapshot)} <span class="mono text-muted">(${window.CRM.esc(v.doctor_code_snapshot)})</span></div>
-          <div class="text-muted" style="font-size:12px;">${window.CRM.esc(v.medpred_name_snapshot || "—")}</div>
-        </td>
-        <td class="text-right mono">${window.CRM.fmtSom(v.total_amount)}</td>
-        <td class="text-right mono">${window.CRM.fmtSom(v.paid_amount)}</td>
-        <td>${badge}</td>
-        <td class="text-right">
-          ${v.status === "completed" && rem > 0 ? `<button type="button" class="btn btn-sm btn-primary" data-pay="${v.id}" data-rem="${rem}">To'lov</button>` : `<a class="btn btn-sm" href="visits.html">Ko'rish</a>`}
-        </td>
-      </tr>`;
-    }).join("");
-
-    els.todayTbody.querySelectorAll("[data-pay]").forEach((b) => {
-      b.addEventListener("click", () => openPartialPayModal(b.dataset.pay, Number(b.dataset.rem)));
-    });
-  }
-
-  function openPartialPayModal(visitId, rem) {
-    window.CRM.openModal(
-      "Qolgan to'lovni qayd etish",
-      `<form id="part-pay-form" class="form-grid">
-        <div class="form-group">
-          <label>Summa (qoldiq: ${window.CRM.fmtSom(rem)}) *</label>
-          <input class="input mono" name="amount" type="number" min="1" max="${rem}" required value="${Math.round(rem)}">
-        </div>
-        <div class="form-group">
-          <label>Usul</label>
-          <select class="select" name="method">
-            <option value="cash">Naqd</option>
-            <option value="card">Plastik karta</option>
-            <option value="transfer">O'tkazma</option>
-          </select>
-        </div>
-      </form>`,
-      `<button type="button" class="btn" onclick="window.CRM.closeModal()">Bekor</button>
-       <button type="submit" form="part-pay-form" class="btn btn-primary">Saqlash</button>`
-    );
-
-    document.getElementById("part-pay-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      try {
-        await window.CRM.rpc("rpc_record_visit_payment", {
-          p_visit_id: visitId,
-          p_amount: Number(fd.get("amount")),
-          p_payment_method: fd.get("method"),
-          p_note: "Qabulxonadan qolgan to'lov"
-        });
-        window.CRM.closeModal();
-        window.CRM.toast("To'lov qayd etildi", "success");
-        await loadCatalogs();
-      } catch (err) {
-        window.CRM.toast("Xato: " + err.message, "error");
-      }
-    });
-  }
-
-  // Event listeners
-  els.patName.addEventListener("input", onPatientInput);
-  els.patPhone.addEventListener("input", onPatientInput);
-  els.docQ.addEventListener("input", renderDoctorMatches);
-  els.docQ.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const m = findDoctorMatches(els.docQ.value);
-      if (m.length === 1) { e.preventDefault(); selectDoctor(m[0]); }
-    }
-  });
-  els.srvQ.addEventListener("input", renderServicesList);
-  els.discount.addEventListener("input", () => recalcTotals(true));
-  els.paid.addEventListener("input", () => recalcTotals(false));
-  document.getElementById("btn-pay-zero")?.addEventListener("click", () => { els.paid.value = "0"; recalcTotals(false); });
-  document.querySelectorAll("#pay-methods .pay-method-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.payMethod = btn.dataset.method;
-      document.querySelectorAll("#pay-methods .pay-method-btn").forEach((b) => b.classList.toggle("active", b === btn));
-    });
-  });
-  document.getElementById("btn-review-visit")?.addEventListener("click", openConfirmModal);
-  document.getElementById("btn-reset-form")?.addEventListener("click", resetForm);
-
-  await loadCatalogs();
-  els.patName.focus();
-})();
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/permissions.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/pwa.js"></script>
+  <script src="../assets/js/modules/reception.js"></script>
+</body>
+</html>
